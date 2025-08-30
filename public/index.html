@@ -73,7 +73,8 @@
   <script>
     // ==== CONFIG ====
     const CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
-    const SCRIPT_URL = 'https://get-portal-data-468716163323.us-west3.run.app';
+    // Use the Firebase Hosting rewrite path (maps to Cloud Run)
+    const API_PATH = '/api/get-portal-data';
 
     // ==== UTILS & RENDER ====
     function setStatus(msg){ const el = document.getElementById('status'); if (el) el.textContent = msg || ''; }
@@ -158,9 +159,9 @@
       setStatus('Signing in…');
       document.getElementById('signin').style.display='none';
 
-      fetch(SCRIPT_URL, {
+      fetch(API_PATH, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken: resp.credential })
       })
       .then(res => res.json())
@@ -170,6 +171,7 @@
       })
       .catch(err => {
         setStatus(err?.message || 'Sign-in failed');
+        document.getElementById('signin').style.display='inline-block';
       });
     }
 
@@ -187,7 +189,4 @@
     window.onload = initSignIn;
   </script>
 </body>
-
 </html>
-
-
