@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm install -g firebase-tools
-      - run: firebase deploy gp-member-portal token "${{ secrets.FIREBASE_TOKEN }}"
+      - run: firebase deploy --project gp-member-portal --token "${{ secrets.FIREBASE_TOKEN }}"
