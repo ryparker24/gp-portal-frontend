@@ -6,16 +6,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    :root { --navy:#0b2545; --muted:#f5f7fb; }
-    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:#222; }
-    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    :root { --navy:#0b2545; --muted:#f5f7fb; --ink:#222; --line:#e9eef6; }
+    * { box-sizing: border-box; }
+    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
+    .app-shell { display:flex; min-height:100vh; }
+    .sidebar {
+      width: 230px; background:#fff; border-right:1px solid var(--line);
+      padding:16px 12px; position:sticky; top:0; height:100vh;
+    }
+    .brand { font-weight:700; color:var(--navy); font-size:18px; margin-bottom:16px; }
+    .nav { display:flex; flex-direction:column; gap:6px; }
+    .nav a {
+      text-decoration:none; color:#333; padding:10px 12px; border-radius:10px; display:flex; align-items:center;
+    }
+    .nav a.active { background:#eef3fb; color:#0b3b8f; font-weight:600; }
+    .content { flex:1; padding:20px; }
     .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .title { font-size: 22px; font-weight:700; color:var(--navy); }
+    .title { font-size:22px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
     .kpi { font-size:28px; font-weight:700; }
-    table { width:100%; border-collapse: collapse; }
+    table { width:100%; border-collapse:collapse; }
     th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
     th { text-align:left; font-size:12px; color:#666; }
     td.num { text-align:right; white-space:nowrap; }
@@ -23,65 +35,135 @@
     tr.subtotal td { font-weight:700; border-top:2px solid #e8edf7; }
     tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
     #status { color:#b00; margin:6px 0; min-height:16px; }
-    #app { opacity:0; pointer-events:none; } /* hidden until signed in */
     #signin { display:inline-block; }
+    #app { opacity:0; pointer-events:none; }
+    .page { display:none; }
+    .page.active { display:block; }
+    .toolbar { margin:8px 0; display:none; }
+    .toolbar.visible { display:block; }
+    .link-inline { color:#0b3b8f; text-decoration:none; }
+    .link-inline:hover { text-decoration:underline; }
+    @media (max-width: 900px){
+      .app-shell { flex-direction:column; }
+      .sidebar { height:auto; position:relative; width:auto; border-right:none; border-bottom:1px solid var(--line); }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div>
-        <div class="title">Member Portal</div>
-        <div class="sub"></div>
-      </div>
-      <div>
-        <span id="signin"></span>
-      </div>
-    </div>
+  <div class="app-shell">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">Member Portal</div>
+      <nav class="nav">
+        <a href="#/transactions" id="nav-transactions">Transactions</a>
+        <a href="#/documents" id="nav-documents">Documents</a>
+      </nav>
+    </aside>
 
-    <!-- Admin tools (hidden by default) -->
-    <div id="adminTools" style="display:none; margin:8px 0;">
-      <button id="impBtn" type="button">Impersonate</button>
-      <span id="impersonationBanner" class="sub" style="display:none;color:#b00;font-weight:700;margin-left:8px;">
-        Impersonating: <span id="impEmail"></span>
-      </span>
-    </div>
-
-    <div id="status" class="sub"></div>
-
-    <div id="app">
-      <div class="grid">
-        <div class="card"><div class="sub">Member</div><div id="kpi-name" class="kpi">—</div></div>
-        <div class="card"><div class="sub">Current Balance</div><div id="kpi-balance" class="kpi">—</div></div>
-      </div>
-
-      <div class="card" style="margin-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
-          <div id="updated" class="sub"></div>
-        </div>
-        <div style="overflow:auto;">
-          <table id="tx">
-            <thead>
-              <tr>
-                <th style="width:110px;">Date</th>
-                <th>Description</th>
-                <th class="num" style="width:140px;">Net</th>
-                <th class="num" style="width:160px;">Running Balance</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-            <tfoot></tfoot>
-          </table>
+    <!-- MAIN CONTENT -->
+    <main class="content">
+      <div class="header">
+        <div class="title" id="pageTitle">Transactions</div>
+        <div>
+          <span id="signin"></span>
         </div>
       </div>
-    </div>
+
+      <!-- Admin tools -->
+      <div id="adminTools" class="toolbar">
+        <button id="impBtn" type="button">Impersonate</button>
+        <span id="impersonationBanner" class="sub" style="display:none;color:#b00;font-weight:700;margin-left:8px;">
+          Impersonating: <span id="impEmail"></span>
+        </span>
+      </div>
+
+      <div id="status" class="sub"></div>
+
+      <div id="app">
+        <!-- PAGE: TRANSACTIONS -->
+        <section id="page-transactions" class="page active">
+          <div class="grid">
+            <div class="card"><div class="sub">Member</div><div id="kpi-name" class="kpi">—</div></div>
+            <div class="card"><div class="sub">Current Balance</div><div id="kpi-balance" class="kpi">—</div></div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
+              <div id="updated" class="sub"></div>
+            </div>
+            <div style="overflow:auto;">
+              <table id="tx">
+                <thead>
+                  <tr>
+                    <th style="width:110px;">Date</th>
+                    <th>Description</th>
+                    <th class="num" style="width:140px;">Net</th>
+                    <th class="num" style="width:160px;">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot></tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- PAGE: DOCUMENTS -->
+        <section id="page-documents" class="page">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="margin:0;font-size:16px;">Documents</h3>
+              <div class="sub"><a class="link-inline" href="#/transactions">← Back to Transactions</a></div>
+            </div>
+            <div style="overflow:auto;margin-top:8px;">
+              <table id="docs">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th style="width:200px;">Entity</th>
+                    <th style="width:260px;">Location</th>
+                    <th style="width:180px;">File</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
   </div>
 
   <script>
     // ==== CONFIG ====
     const CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
     const API_PATH = '/api/get-portal-data'; // Firebase Hosting rewrite → Cloud Run
+
+    // ==== SIMPLE ROUTER ====
+    const routes = {
+      '/transactions': { el: () => document.getElementById('page-transactions'), title: 'Transactions' },
+      '/documents':    { el: () => document.getElementById('page-documents'),    title: 'Documents' }
+    };
+    function setActiveNav(path){
+      document.getElementById('nav-transactions').classList.toggle('active', path === '/transactions');
+      document.getElementById('nav-documents').classList.toggle('active', path === '/documents');
+      document.getElementById('pageTitle').textContent = routes[path]?.title || 'Transactions';
+    }
+    function showPage(path){
+      const keys = Object.keys(routes);
+      keys.forEach(k => routes[k].el().classList.remove('active'));
+      const r = routes[path] || routes['/transactions'];
+      r.el().classList.add('active');
+      setActiveNav(path in routes ? path : '/transactions');
+    }
+    function currentPath(){
+      const h = (location.hash || '#/transactions').replace(/^#/, '');
+      return h || '/transactions';
+    }
+    window.addEventListener('hashchange', () => showPage(currentPath()));
+    // initial state:
+    document.addEventListener('DOMContentLoaded', () => showPage(currentPath()));
 
     // ==== UTILS & RENDER ====
     function setStatus(msg){ const el = document.getElementById('status'); if (el) el.textContent = msg || ''; }
@@ -104,6 +186,8 @@
       const local = (fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
       return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
     }
+
+    // render both pages from the same payload
     function render(data){
       if (!data || !Array.isArray(data.tx)) {
         setStatus('We could not determine your Google account. Please sign in.');
@@ -113,12 +197,12 @@
       document.getElementById('app').style.opacity = 1;
       document.getElementById('app').style.pointerEvents = 'auto';
 
+      // ---- Transactions page ----
       const rows = data.tx.map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
         return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
       });
-
       const grandTotal = rows.reduce((a, r) => a + r.net, 0);
 
       document.getElementById('kpi-name').textContent    = pickMemberName(data.tx, data.email || '');
@@ -130,7 +214,6 @@
 
       const tb = document.querySelector('#tx tbody'); tb.innerHTML='';
       const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
-
       for (const name of entityNames) {
         const list = groups.get(name).sort((a,b)=> a.date - b.date);
         const eh = document.createElement('tr'); eh.className = 'entity-hdr';
@@ -152,13 +235,58 @@
                           <td class="num"><strong>${money(running)}</strong></td>`;
         tb.appendChild(st);
       }
-
       const tf = document.querySelector('#tx tfoot'); tf.innerHTML='';
       const gt = document.createElement('tr'); gt.className = 'grand';
       gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td>
                         <td class="num"><strong>${money(grandTotal)}</strong></td>
                         <td class="num"><strong>${money(grandTotal)}</strong></td>`;
       tf.appendChild(gt);
+
+      // ---- Documents page ----
+      const dtb = document.querySelector('#docs tbody');
+      if (dtb) {
+        dtb.innerHTML = '';
+        const docs = Array.isArray(data.docs) ? data.docs : [];
+
+        // Build a URL in priority order: ViewURL → DownloadURL → GoogleFileID
+        const buildDocUrl = d => {
+          const view = (d.ViewURL || '').trim(); if (view) return view;
+          const dl   = (d.DownloadURL || '').trim(); if (dl) return dl;
+          const id   = (d.GoogleFileID || '').trim();
+          return id ? `https://drive.google.com/file/d/${id}/view` : '#';
+        };
+
+        // Sort: try Doc_ID desc if numeric, else by title
+        const num = s => Number(String(s||'').replace(/[^\d.-]/g,'')); 
+        const numericIDs = docs.some(d => !Number.isNaN(num(d.Doc_ID)));
+        docs.sort((a,b) => {
+          if (numericIDs) return num(b.Doc_ID) - num(a.Doc_ID);
+          const ta = String(a.Doc_Title || a.FileName || '').toLowerCase();
+          const tb = String(b.Doc_Title || b.FileName || '').toLowerCase();
+          return ta.localeCompare(tb);
+        });
+
+        for (const d of docs) {
+          const title = d.Doc_Title || d.FileName || 'Document';
+          const url   = buildDocUrl(d);
+          const ent   = d.Entity_Name || d.EntityName || '—';
+          const loc   = d.QB_Location || d.QB_Accounts || '—';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><a href="${safe(url)}" target="_blank" rel="noopener">${safe(title)}</a></td>
+            <td>${safe(ent)}</td>
+            <td>${safe(loc)}</td>
+            <td>${safe(d.FileName || '')}</td>
+          `;
+          dtb.appendChild(tr);
+        }
+        if (docs.length === 0) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td colspan="4" class="sub">No documents available.</td>`;
+          dtb.appendChild(tr);
+        }
+      }
     }
 
     // ==== Admin helpers ====
@@ -168,7 +296,6 @@
       if (email) { span.textContent = email; banner.style.display = 'inline'; }
       else { banner.style.display = 'none'; }
     }
-
     async function impersonateFlow(idToken) {
       const target = prompt('Impersonate email:'); if (!target) return;
       const reason = prompt('Reason (audit):') || '';
@@ -208,10 +335,12 @@
         showImpersonationBanner(data.actingAs !== data.email ? data.actingAs : '');
 
         // If admin, reveal tools and wire the button
+        const tools = document.getElementById('adminTools');
         if (data.isAdmin) {
-          const tools = document.getElementById('adminTools');
-          tools.style.display = 'block';
+          tools.classList.add('visible');
           document.getElementById('impBtn').onclick = () => impersonateFlow(window.lastIdToken);
+        } else {
+          tools.classList.remove('visible');
         }
       })
       .catch(err => {
