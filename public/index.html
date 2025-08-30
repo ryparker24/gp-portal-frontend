@@ -31,7 +31,10 @@
   <div class="wrap">
     <div class="header">
       <div>
-        <div class="title">Member Portal</div>
+       <div id="impersonationBanner" class="sub" style="display:none;color:#b00;font-weight:700;">
+  Impersonating: <span id="impEmail"></span>
+</div>
+ <div class="title">Member Portal</div>
         <div class="sub"></div>
       </div>
       <div>
@@ -187,6 +190,40 @@
       );
     }
     window.onload = initSignIn;
-  </script>
+ function showImpersonationBanner(email) {
+  const banner = document.getElementById('impersonationBanner');
+  const span = document.getElementById('impEmail');
+  if (email) {
+    span.textContent = email;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+async function impersonateFlow(idToken) {
+  const target = prompt('Impersonate email:');
+  if (!target) return;
+  const reason = prompt('Reason (for audit log):') || '';
+  const adminToken = prompt('Admin token:'); // not stored; sent once
+  if (!adminToken) return;
+
+  const res = await fetch('/api/get-portal-data', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Token': adminToken
+    },
+    body: JSON.stringify({ idToken, actAs: target, reason })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  // Render result for target email, show banner
+  render(data);
+  if (data.actingAs && data.actingAs !== data.email) showImpersonationBanner(data.actingAs);
+}
+ </script>
 </body>
 </html>
+
