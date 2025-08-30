@@ -1,5 +1,13 @@
 {
   "hosting": {
-    "public": "public"
+    "rewrites": [
+      {
+        "source": "/api/get-portal-data",
+        "run": {
+          "serviceId": "get-portal-data",
+          "region": "us-west3"
+        }
+      }
+    ]
   }
 }
