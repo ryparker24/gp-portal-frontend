@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Documents</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -35,7 +38,7 @@
   <div id="empty" style="color:#666">No documents found.</div>
 
   <script>
-    // IMPORTANT: do not include any other site scripts here (no client.js)
+    // IMPORTANT: Do not include any other site scripts on this page.
     const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
 
     window.onload = function () {
@@ -47,12 +50,12 @@
     };
 
     async function onSignedIn(resp){
-      window.__idToken = resp.credential;                       // save for downloads
+      window.__idToken = resp.credential;
       setStatus('Loading documents…');
 
       try {
         console.log('[docs] POST /api/list-docs');
-        const r = await fetch('/api/list-docs', {
+        const r = await fetch('/api/list-docs?_=' + Date.now(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: window.__idToken })
@@ -80,7 +83,7 @@
       try {
         btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
         console.log('[docs] POST /api/mint-doc', fileId);
-        const r = await fetch('/api/mint-doc', {
+        const r = await fetch('/api/mint-doc?_=' + Date.now(), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: window.__idToken, fileId })
