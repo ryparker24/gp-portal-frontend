@@ -180,80 +180,95 @@
     function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
 
     // ===== transactions =====
-    function renderTransactions(data){
-      if (!data || !Array.isArray(data.tx)) {
-        setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
-        return;
-      }
-      setStatus('');
-
-      const rows = data.tx.map(r=>{
-        const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
-        const netVal = hasNet ? parseMoney(r.Net_Amount)
-                              : (parseMoney(r.Credit) - parseMoney(r.Debit));
-        return {
-          date: asDate(r.Date),
-          dateText: r.Date || '',
-          desc: r.Description || '',
-          entity: r.EntityName || '—',
-          net: netVal
-        };
-      });
-
-      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
-
-      document.getElementById('kpi-name').textContent  = (data.memberName || '') || (decodeJwt(window.__idToken).name || '—');
-      document.getElementById('kpi-email').textContent = data.actingAs || data.email || '';
-      document.getElementById('kpi-right-title').textContent = 'Current Balance';
-      document.getElementById('kpi-right-value').textContent = money(grandTotal);
-      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
-      document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
-
-      const tb = document.querySelector('#tx tbody');
-      const tf = document.querySelector('#tx tfoot');
-      tb.innerHTML = ''; tf.innerHTML = '';
-
-      const groups = new Map();
-      for (const it of rows) {
-        if (!groups.has(it.entity)) groups.set(it.entity, []);
-        groups.get(it.entity).push(it);
-      }
-      const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
-
-      for (const name of entityNames) {
-        const list = groups.get(name).sort((a,b)=> a.date - b.date);
-        const eh = document.createElement('tr');
-        eh.className = 'entity-hdr';
-        eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
-        tb.appendChild(eh);
-
-        let running = 0;
-        for (const r of list) {
-          running += r.net;
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${safe(r.dateText)}</td>
-            <td>${safe(r.desc)}</td>
-            <td class="num">${money(r.net)}</td>
-            <td class="num">${money(running)}</td>`;
-          tb.appendChild(tr);
-        }
-        const sub = list.reduce((a, x) => a + x.net, 0);
-        const st = document.createElement('tr');
-        st.className = 'subtotal';
-        st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td>
-                        <td class="num"><strong>${money(sub)}</strong></td>
-                        <td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
-        tb.appendChild(st);
-      }
-
-      const gt = document.createElement('tr');
-      gt.className = 'grand';
-      gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td>
-                      <td class="num"><strong>${money(grandTotal)}</strong></td>
-                      <td class="num"><strong>${money(grandTotal)}</strong></td>`;
-      tf.appendChild(gt);
+     function renderTransactions(data){
+    if (!data || !Array.isArray(data.tx)) {
+      setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
+      return;
     }
+    setStatus('');
+
+    // ---- derive member display from the impersonated data, not the admin token ----
+    // Prefer name from the rows; fallback to actingAs email; final fallback is admin token name.
+    const memberDisplayName = pickMemberName(data.tx, data.actingAs || data.email);
+    const memberEmail = data.actingAs || data.email || '';
+
+    const rows = data.tx.map(r=>{
+      const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
+      const netVal = hasNet ? parseMoney(r.Net_Amount)
+                            : (parseMoney(r.Credit) - parseMoney(r.Debit)); // debit reduces, credit increases
+      return {
+        date: asDate(r.Date),
+        dateText: r.Date || '',
+        desc: r.Description || '',
+        entity: r.EntityName || '—',
+        net: netVal
+      };
+    });
+
+    const grandTotal = rows.reduce((a, r) => a + r.net, 0);
+
+    // === KPIs (now show impersonated identity) ===
+    document.getElementById('kpi-name').textContent  = memberDisplayName || '—';
+    document.getElementById('kpi-email').textContent = memberEmail || '—';
+    document.getElementById('kpi-right-title').textContent = 'Current Balance';
+    document.getElementById('kpi-right-value').textContent = money(grandTotal);
+    document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
+    document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
+
+    // ---- group & render (unchanged) ----
+    const tb = document.querySelector('#tx tbody');
+    const tf = document.querySelector('#tx tfoot');
+    tb.innerHTML = ''; tf.innerHTML = '';
+
+    const groups = new Map();
+    for (const it of rows) {
+      if (!groups.has(it.entity)) groups.set(it.entity, []);
+      groups.get(it.entity).push(it);
+    }
+    const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+
+    for (const name of entityNames) {
+      const list = groups.get(name).sort((a,b)=> a.date - b.date);
+      const eh = document.createElement('tr');
+      eh.className = 'entity-hdr';
+      eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
+      tb.appendChild(eh);
+
+      let running = 0;
+      for (const r of list) {
+        running += r.net;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${safe(r.dateText)}</td>
+          <td>${safe(r.desc)}</td>
+          <td class="num">${money(r.net)}</td>
+          <td class="num">${money(running)}</td>`;
+        tb.appendChild(tr);
+      }
+      const sub = list.reduce((a, x) => a + x.net, 0);
+      const st = document.createElement('tr');
+      st.className = 'subtotal';
+      st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td>
+                      <td class="num"><strong>${money(sub)}</strong></td>
+                      <td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
+      tb.appendChild(st);
+    }
+
+    const gt = document.createElement('tr');
+    gt.className = 'grand';
+    gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td>
+                    <td class="num"><strong>${money(grandTotal)}</strong></td>
+                    <td class="num"><strong>${money(grandTotal)}</strong></td>`;
+    tf.appendChild(gt);
+
+    // Update the small “Signed in as …” line to show impersonation clearly
+    const signedAs = document.getElementById('signedAs');
+    if (signedAs) {
+      signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
+        ? `Acting as ${data.actingAs} (admin: ${data.email})`
+        : `Signed in as ${data.email}`;
+    }
+  }
 
     // ===== documents =====
     function renderDocuments(docs){
@@ -399,3 +414,4 @@
   </script>
 </body>
 </html>
+
