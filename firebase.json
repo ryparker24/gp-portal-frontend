@@ -5,12 +5,16 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "rewrites": [
-      { "source": "/api/get-portal-data", "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
-      { "source": "/api/mint-doc",        "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
-      { "source": "/api/list-docs",       "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
-      { "source": "/api/dl",              "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
-      { "source": "/mint-doc",            "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
-      { "source": "/dl",                  "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
+      { "source": "/api/**", "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
+    ],
+    "headers": [
+      {
+        "source": "/api/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store" },
+          { "key": "Vary", "value": "Cookie" }
+        ]
+      }
     ]
   }]
 }
