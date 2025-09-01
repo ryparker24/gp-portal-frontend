@@ -1,5 +1,12 @@
 {
   "projects": {
     "default": "gp-member-portal"
+  },
+  "targets": {
+    "gp-member-portal": {
+      "hosting": {
+        "allegisgp": ["allegisgp"]
+      }
+    }
   }
 }
