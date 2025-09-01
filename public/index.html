@@ -361,6 +361,16 @@
       );
     }
     window.onload = initSignIn;
-  </script>
+  </script><script>
+(function () {
+  function maybeRedirect() {
+    if (location.hash === '#/documents') location.replace('/documents.html');
+  }
+  window.addEventListener('hashchange', maybeRedirect);
+  maybeRedirect();
+})();
+</script>
+
 </body>
 </html>
+
