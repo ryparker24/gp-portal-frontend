@@ -1,7 +1,7 @@
 {
   "hosting": [{
     "site": "allegisgp",
-    "public": ".",
+    "public": "public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "cleanUrls": true,
     "rewrites": [
