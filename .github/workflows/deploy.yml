@@ -22,7 +22,7 @@ jobs:
         run: |
           firebase projects:list --project gp-member-portal
 
-      - name: "Deploy Hosting (site: allegisgp)"
+      - name: "Deploy Hosting (target allegisgp)"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
