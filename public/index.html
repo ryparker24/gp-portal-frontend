@@ -1,135 +1,139 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
+  <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GP Member Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    :root { --border:#e5e7eb; --muted:#6b7280; --bg:#f8fafc; --ink:#111827; --ink2:#374151; --ink3:#4b5563; }
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:var(--ink)}
-    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:10}
-    .brand{font-weight:600}
-    nav a{margin-left:12px;text-decoration:none;color:var(--ink2);padding:6px 10px;border-radius:8px}
-    nav a.active{background:var(--bg);border:1px solid var(--border)}
-    #g_id_signin{margin-left:8px}
-    .status{font-size:12px;color:var(--muted);margin-left:6px}
-    main{max-width:1100px;margin:18px auto;padding:0 18px}
-    .row{display:flex;gap:16px;flex-wrap:wrap}
-    .card{border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
-    .hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-    .bd{padding:16px}
-    .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-    .kpi{flex:1 1 240px;border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff}
-    .kpi .t{font-size:12px;color:var(--muted);margin-bottom:6px}
-    .kpi .v{font-size:20px;font-weight:700}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;font-size:14px}
-    th{background:#f6f7fb;font-weight:600}
-    .group{background:#fafafa}
-    .group td{font-weight:600}
-    .grand{background:#f0f7f0}
-    .right{text-align:right}
-    .muted{color:var(--muted)}
-    .hidden{display:none !important}
-    button{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);cursor:pointer}
+    :root { --navy:#0b2545; --muted:#f5f7fb; }
+    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:#222; }
+    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .title { font-size: 22px; font-weight:700; color:var(--navy); }
+    .sub { color:#666; font-size:12px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
+    .kpi { font-size:28px; font-weight:700; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
+    th { text-align:left; font-size:12px; color:#666; }
+    td.num { text-align:right; white-space:nowrap; }
+    tr.entity-hdr td { background:#f5f7fb; font-weight:700; border-top:2px solid #e8edf7; }
+    tr.subtotal td { font-weight:700; border-top:2px solid #e8edf7; }
+    tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
+    #status { color:#b00; margin:6px 0; min-height:16px; }
+    /* tiny nav links in the top-right "mode" area */
+    #mode a { color:#2a4b8d; text-decoration:none; margin-left:10px; }
+    #mode a.active { font-weight:700; }
+    .hidden { display:none !important; }
+    .right { text-align:right; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">GP Member Portal</div>
-    <nav>
-      <a href="#/transactions" id="nav-transactions" class="active">Transactions</a>
-      <a href="#/documents" id="nav-documents">Documents</a>
-      <span class="status" id="status">Loading…</span>
-      <div id="g_id_signin"></div>
-    </nav>
-  </header>
-
-  <main>
-    <!-- Transactions -->
-    <section id="view-transactions" class="card">
-      <div class="hd"><div>Transactions</div></div>
-      <div class="bd">
-        <div class="kpis">
-          <div class="kpi">
-            <div class="t">Member</div>
-            <div class="v" id="kpi-name">—</div>
-            <div class="muted" id="kpi-email" style="font-size:12px;margin-top:4px">—</div>
-          </div>
-          <div class="kpi">
-            <div class="t">Total Balance</div>
-            <div class="v" id="kpi-total">$0</div>
-            <div class="muted" style="font-size:12px;margin-top:4px" id="kpi-rows">— rows</div>
-          </div>
-        </div>
-
-        <div id="tx-empty" class="muted">No transactions found.</div>
-        <div id="tx-wrap" class="hidden">
-          <table>
-            <thead id="tx-thead"></thead>
-            <tbody id="tx-tbody"></tbody>
-            <tfoot id="tx-tfoot"></tfoot>
-          </table>
-        </div>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <div class="title" id="appTitle">GP Member Portal</div>
+        <div class="sub" id="buildTag">Build: —</div>
       </div>
-    </section>
-
-    <!-- Documents -->
-    <section id="view-documents" class="card hidden">
-      <div class="hd">
-        <div>Documents</div>
-        <a href="#/transactions" class="muted" style="font-size:12px;text-decoration:none;">← Back to Transactions</a>
+      <div id="mode" class="sub">
+        <span id="signedAs">Signed out</span>
+        <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+        <a href="#/documents"   id="linkDocs">Documents</a>
+        <span id="g_id_signin" style="margin-left:8px;"></span>
       </div>
-      <div class="bd">
-        <div id="docs-empty" class="muted">No documents available.</div>
-        <div id="docs-wrap" class="hidden">
-          <table>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Member</th>
-                <th>Modified</th>
-                <th class="right">Size</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="docs-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
+    </div>
 
-  <!-- GIS -->
+    <div id="status" class="sub"></div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="sub">Member</div>
+        <div id="kpi-name" class="kpi">—</div>
+        <div id="kpi-email" class="sub" style="margin-top:4px;">—</div>
+      </div>
+      <div class="card">
+        <div class="sub" id="kpi-right-title">Current Balance</div>
+        <div id="kpi-right-value" class="kpi">—</div>
+        <div id="kpi-right-sub" class="sub" style="margin-top:4px;">—</div>
+      </div>
+    </div>
+
+    <!-- Transactions card (original layout) -->
+    <div id="card-tx" class="card" style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
+        <div id="updated" class="sub"></div>
+      </div>
+      <div style="overflow:auto;">
+        <table id="tx">
+          <thead>
+            <tr>
+              <th style="width:110px;">Date</th>
+              <th>Description</th>
+              <th class="num" style="width:140px;">Net</th>
+              <th class="num" style="width:160px;">Running Balance</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Documents card (cloned to match the look above) -->
+    <div id="card-docs" class="card hidden" style="margin-top:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:16px;">Documents</h3>
+        <div id="docs-updated" class="sub"></div>
+      </div>
+      <div style="overflow:auto;">
+        <table id="docs">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Member</th>
+              <th style="width:160px;">Modified</th>
+              <th class="num" style="width:120px;">Size</th>
+              <th style="width:120px;"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
-  (function(){
-    // ===== CONFIG: tweak only if your column names are different =====
-    const GROUP_KEY_CANDIDATES = ['Entity','Fund','Vehicle','Partnership','Issuer','Company','Investment'];
-    const AMOUNT_COL_CANDIDATES = ['Amount','Net Amount','Net_Amount','Amount_USD','Balance','Balance_USD','NetBalance','Net'];
-    const MEMBER_NAME_COLS = ['Member_Name','MemberName','Name'];
-    const MEMBER_EMAIL_COLS = ['Member_Email','MemberEmail','Email','User_Email'];
-    const CURRENCY = 'USD';
-    // =================================================================
-
+    // ===== CONFIG =====
     const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
     const CACHE_KEY = 'gp:idtoken';
+    const CURRENCY = 'USD';
     const nf = new Intl.NumberFormat('en-US', { style:'currency', currency:CURRENCY, maximumFractionDigits:2 });
+    // ==================
 
-    const statusEl = document.getElementById('status');
-    function setStatus(s){ statusEl.textContent = s; }
+    // ---- helpers: ui/status/format ----
+    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
+    const safe = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const asDate = s => new Date(String(s||'').replace(/-/g,'/'));
+    const money = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    function parseMoney(v){
+      const raw = String(v ?? '').trim(); if (!raw) return 0;
+      const norm = raw.replace(/[\u2212\u2010-\u2015]/g, '-');
+      const signProbe = norm.replace(/[^\d.\-()]/g, '');
+      const isNeg = /\(.*\)/.test(signProbe) || signProbe.includes('-');
+      const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
+      return isNeg ? -mag : mag;
+    }
 
-    // ---- Token cache (no re-login on refresh) ----
-    function decodeJwt(token){
-      try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p))));}catch(_){return {}}
-    }
-    function cacheToken(idToken){
-      const p=decodeJwt(idToken); localStorage.setItem(CACHE_KEY, JSON.stringify({t:idToken, expMs:(p.exp||0)*1000, name:p.name||'', email:p.email||''}));
-      return idToken;
-    }
-    function getCached(){ try{const o=JSON.parse(localStorage.getItem(CACHE_KEY)||''); if(!o||!o.t||!o.expMs) return null; if(Date.now()<o.expMs-15000) return o; return null;}catch(_){return null}}
+    // ---- token cache (no re-login on refresh) ----
+    function decodeJwt(token){ try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p))));}catch(_){return {}} }
+    function cacheToken(idToken){ const p=decodeJwt(idToken); localStorage.setItem(CACHE_KEY, JSON.stringify({ t:idToken, expMs:(p.exp||0)*1000, name:p.name||'', email:p.email||'' })); return idToken; }
+    function getCached(){ try{const o=JSON.parse(localStorage.getItem(CACHE_KEY)||''); if(!o||!o.t||!o.expMs) return null; if(Date.now()<o.expMs-15000) return o; return null;}catch(_){return null} }
 
     // ---- strict JSON POST ----
     async function apiPost(path, body){
@@ -139,165 +143,185 @@
       const j = JSON.parse(text); if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`); return j;
     }
 
-    // ---- Helpers for table rendering ----
-    const num = v => {
-      if (v==null) return 0;
-      const s = String(v).replace(/[\$,]/g,'').trim();
-      const x = Number(s); return isFinite(x) ? x : 0;
-    };
-    const firstExistingKey = (row, candidates) => candidates.find(k => k in row) || null;
-
-    // Pick a group key column present in most rows
-    function chooseGroupKey(rows){
-      for(const k of GROUP_KEY_CANDIDATES){ if(rows.some(r => r[k])) return k; }
-      return GROUP_KEY_CANDIDATES[0];
-    }
-    // Pick an amount column with meaningful totals
-    function chooseAmountCol(rows){
-      // prefer explicit names first
-      for(const k of AMOUNT_COL_CANDIDATES){ const tot = rows.reduce((a,r)=>a+num(r[k]),0); if (Math.abs(tot) > 0) return k; }
-      // fallback: first numeric-looking column
-      const keys = Object.keys(rows[0]||{});
-      for(const k of keys){ const tot = rows.reduce((a,r)=>a+num(r[k]),0); if (Math.abs(tot) > 0) return k; }
-      return null;
+    // ---- member name picker (original logic) ----
+    function pickMemberName(rows, fallbackEmail){
+      const fields = ['Member_Name','MemberName','Name','Member'];
+      for (const f of fields){
+        const r = rows.find(x => x && x[f] && String(x[f]).trim());
+        if (r) return String(r[f]).trim();
+      }
+      const q = rows.find(x => x && x.QB_Account && x.QB_Account.includes('-'));
+      if (q){
+        const last = String(q.QB_Account).split('-').pop().trim();
+        if (last && /[A-Za-z]/.test(last)) return last;
+      }
+      const local = (fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
+      return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
     }
 
-    function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleDateString(); }
-    function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    // ================== TRANSACTIONS (original renderer) ==================
+    function renderTransactions(data){
+      if (!data || !Array.isArray(data.tx)) {
+        setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
+        return;
+      }
+      setStatus('');
 
-    // ================= TRANSACTIONS =================
-    function renderTransactions(rows, profile){
-      // KPIs
-      document.getElementById('kpi-name').textContent  = profile.name || '—';
-      document.getElementById('kpi-email').textContent = profile.email || '—';
+      const rows = data.tx.map(r=>{
+        const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
+        const netVal = hasNet ? parseMoney(r.Net_Amount)
+                              : (parseMoney(r.Credit) - parseMoney(r.Debit)); // debit reduces, credit increases
+        return {
+          date: asDate(r.Date),
+          dateText: r.Date || '',
+          desc: r.Description || '',
+          entity: r.EntityName || '—',
+          net: netVal
+        };
+      });
 
-      const wrap  = document.getElementById('tx-wrap');
-      const empty = document.getElementById('tx-empty');
-      const thead = document.getElementById('tx-thead');
-      const tbody = document.getElementById('tx-tbody');
-      const tfoot = document.getElementById('tx-tfoot');
+      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
 
-      if (!rows || !rows.length){
-        wrap.classList.add('hidden'); empty.classList.remove('hidden');
-        document.getElementById('kpi-total').textContent = nf.format(0);
-        document.getElementById('kpi-rows').textContent  = '0 rows';
+      document.getElementById('kpi-name').textContent  = pickMemberName(data.tx, data.email || '');
+      document.getElementById('kpi-email').textContent = data.actingAs || data.email || '';
+      document.getElementById('kpi-right-title').textContent = 'Current Balance';
+      document.getElementById('kpi-right-value').textContent = money(grandTotal);
+      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
+      document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
+
+      const tb = document.querySelector('#tx tbody');
+      const tf = document.querySelector('#tx tfoot');
+      tb.innerHTML = ''; tf.innerHTML = '';
+
+      const groups = new Map();
+      for (const it of rows) {
+        if (!groups.has(it.entity)) groups.set(it.entity, []);
+        groups.get(it.entity).push(it);
+      }
+      const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+
+      for (const name of entityNames) {
+        const list = groups.get(name).sort((a,b)=> a.date - b.date);
+        const eh = document.createElement('tr');
+        eh.className = 'entity-hdr';
+        eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
+        tb.appendChild(eh);
+
+        let running = 0;
+        for (const r of list) {
+          running += r.net;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${safe(r.dateText)}</td>
+            <td>${safe(r.desc)}</td>
+            <td class="num">${money(r.net)}</td>
+            <td class="num">${money(running)}</td>`;
+          tb.appendChild(tr);
+        }
+        const sub = list.reduce((a, x) => a + x.net, 0);
+        const st = document.createElement('tr');
+        st.className = 'subtotal';
+        st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td>
+                        <td class="num"><strong>${money(sub)}</strong></td>
+                        <td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
+        tb.appendChild(st);
+      }
+
+      const gt = document.createElement('tr');
+      gt.className = 'grand';
+      gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td>
+                      <td class="num"><strong>${money(grandTotal)}</strong></td>
+                      <td class="num"><strong>${money(grandTotal)}</strong></td>`;
+      tf.appendChild(gt);
+    }
+
+    // ================== DOCUMENTS (clone of look/feel) ==================
+    function renderDocuments(docs){
+      const tbody = document.querySelector('#docs tbody');
+      const tfoot = document.querySelector('#docs tfoot');
+      tbody.innerHTML = ''; tfoot.innerHTML = '';
+
+      if (!docs || !docs.length){
+        document.getElementById('docs-updated').textContent = '';
+        // KPIs: show docs count
+        document.getElementById('kpi-right-title').textContent = 'Documents';
+        document.getElementById('kpi-right-value').textContent = '0';
+        document.getElementById('kpi-right-sub').textContent   = '—';
         return;
       }
 
-      // Choose keys
-      const groupKey = chooseGroupKey(rows);
-      const amtKey   = chooseAmountCol(rows) || 'Amount';
-
-      // Build header (preserve main columns + amount on the right)
-      const cols = Object.keys(rows[0]).filter(k => k !== amtKey);
-      thead.innerHTML = `<tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}<th class="right">${esc(amtKey)}</th></tr>`;
-
-      // Group rows
-      const groups = new Map();
-      for (const r of rows){
-        const g = r[groupKey] || 'Other';
-        if (!groups.has(g)) groups.set(g, []);
-        groups.get(g).push(r);
-      }
-
-      // Render body with group subtotals
-      let grand = 0;
-      let bodyHtml = '';
-      for (const [gName, list] of groups.entries()){
-        const subtotal = list.reduce((a,r)=>a+num(r[amtKey]),0);
-        grand += subtotal;
-        bodyHtml += `<tr class="group"><td colspan="${cols.length}">${esc(gName)}</td><td class="right">${nf.format(subtotal)}</td></tr>`;
-        for (const r of list){
-          bodyHtml += `<tr>` +
-              cols.map(c => `<td>${esc(r[c])}</td>`).join('') +
-              `<td class="right">${nf.format(num(r[amtKey]))}</td>` +
-            `</tr>`;
-        }
-      }
-      tbody.innerHTML = bodyHtml;
-
-      // Grand total
-      tfoot.innerHTML = `<tr class="grand"><td colspan="${cols.length}"><b>Grand Total</b></td><td class="right"><b>${nf.format(grand)}</b></td></tr>`;
-
-      // KPIs
-      document.getElementById('kpi-total').textContent = nf.format(grand);
-      document.getElementById('kpi-rows').textContent  = `${rows.length} rows`;
-
-      empty.classList.add('hidden'); wrap.classList.remove('hidden');
-    }
-
-    // ================= DOCUMENTS =================
-    async function listDocs(){
-      if (!window.__idToken) return;
-      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
-      const wrap = document.getElementById('docs-wrap');
-      const empty = document.getElementById('docs-empty');
-      const tbody = document.getElementById('docs-tbody');
-
-      if (!docs || !docs.length){
-        wrap.classList.add('hidden'); empty.classList.remove('hidden'); return;
-      }
+      // rows
       tbody.innerHTML = docs.map(r => `
         <tr>
-          <td>${esc(r.Doc_Title || '')}</td>
-          <td>${esc(r.Member_Name || '')}</td>
-          <td>${esc(r.ModifiedTime ? fmtDate(r.ModifiedTime) : '')}</td>
-          <td class="right">${r.SizeBytes ? esc(Number(r.SizeBytes).toLocaleString()) : ''}</td>
-          <td><button class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
+          <td>${safe(r.Doc_Title || '')}</td>
+          <td>${safe(r.Member_Name || '')}</td>
+          <td>${safe(r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : '')}</td>
+          <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
+          <td><button class="dl" data-fid="${safe(r.GoogleFileID)}">Download</button></td>
         </tr>
       `).join('');
 
-      empty.classList.add('hidden'); wrap.classList.remove('hidden');
+      // footer: total files
+      const ft = document.createElement('tr');
+      ft.className = 'grand';
+      ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${docs.length}</strong></td><td></td>`;
+      tfoot.appendChild(ft);
+
+      // KPIs: show docs count
+      document.getElementById('kpi-right-title').textContent = 'Documents';
+      document.getElementById('kpi-right-value').textContent = String(docs.length);
+      document.getElementById('kpi-right-sub').textContent   = 'Available files';
+      document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
+
+    async function loadDocuments(){
+      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
+      renderDocuments(docs || []);
+    }
+
     async function downloadDoc(fileId, btn){
       try{
-        btn.disabled=true; const old=btn.textContent; btn.textContent='Preparing…';
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
         const { token } = await apiPost('/api/mint-doc', { idToken: window.__idToken, fileId });
         location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-        btn.textContent=old; btn.disabled=false;
+        btn.textContent = old; btn.disabled = false;
       }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
     }
+
     document.addEventListener('click', (e)=>{
-      const btn = e.target.closest('.doc-dl'); if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
+      const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b);
     });
 
-    // ================= ROUTER =================
-    function setActiveNav(){
-      const isDocs = location.hash === '#/documents';
-      document.getElementById('nav-transactions').classList.toggle('active', !isDocs);
-      document.getElementById('nav-documents').classList.toggle('active', isDocs);
+    // ================== ROUTER ==================
+    function setRoute(hash){
+      const tx = document.getElementById('card-tx');
+      const dc = document.getElementById('card-docs');
+      const isDocs = (hash === '#/documents');
+      tx.classList.toggle('hidden', isDocs);
+      dc.classList.toggle('hidden', !isDocs);
+      document.getElementById('linkTx').classList.toggle('active', !isDocs);
+      document.getElementById('linkDocs').classList.toggle('active', isDocs);
+      document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
+      if (isDocs && window.__idToken) loadDocuments();
     }
-    function showView(hash){
-      const isDocs = hash === '#/documents';
-      document.getElementById('view-transactions').classList.toggle('hidden', isDocs);
-      document.getElementById('view-documents').classList.toggle('hidden', !isDocs);
-      setActiveNav();
-      if (isDocs) listDocs();
-    }
-    window.addEventListener('hashchange', () => showView(location.hash));
+    window.addEventListener('hashchange', () => setRoute(location.hash));
 
-    // ================= SIGN-IN / BOOT =================
+    // ================== SIGN-IN / BOOT ==================
     async function afterSignIn(idToken){
       const p = decodeJwt(idToken);
-      window.__idToken = cacheToken(idToken); // store + expose
+      window.__idToken = cacheToken(idToken);
+
+      document.getElementById('signedAs').textContent = `Signed in as ${p.email || ''}`;
+      document.getElementById('kpi-name').textContent  = p.name || '—';
+      document.getElementById('kpi-email').textContent = p.email || '—';
 
       setStatus('Loading transactions…');
       try{
         const data = await apiPost('/api/get-portal-data', { idToken });
-        // Try to pick member name/email from rows if present; fallback to token
-        const sample = (data.tx && data.tx[0]) || {};
-        const nameKey  = firstExistingKey(sample, MEMBER_NAME_COLS);
-        const emailKey = firstExistingKey(sample, MEMBER_EMAIL_COLS);
-        const profile = {
-          name:  sample[nameKey]  || p.name  || '',
-          email: sample[emailKey] || p.email || ''
-        };
-        renderTransactions(data.tx || [], profile);
-        setStatus('Ready.');
-        if (location.hash === '#/documents') listDocs();
-      }catch(e){
-        console.error(e); setStatus('Failed to load.');
-      }
+        renderTransactions(data);
+        setStatus('');
+        if (location.hash === '#/documents') loadDocuments();
+      }catch(e){ console.error(e); setStatus('Failed to load.'); }
     }
 
     function initGis(){
@@ -309,22 +333,26 @@
         use_fedcm_for_prompt: true,
         cancel_on_tap_outside: false
       });
-      const btn = document.getElementById('g_id_signin');
-      if (btn) google.accounts.id.renderButton(btn, { theme:'outline', size:'large' });
+      if (document.getElementById('g_id_signin')) {
+        google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme:'outline', size:'large' });
+      }
       google.accounts.id.prompt(); // silent reuse if possible
     }
 
     function boot(){
+      // header values
+      document.getElementById('appTitle').textContent = 'GP Member Portal';
+      document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
+
       if (!location.hash) location.replace('#/transactions');
-      showView(location.hash);
+      setRoute(location.hash);
 
       const cached = getCached();
-      if (cached){ window.__idToken = cached.t; document.getElementById('kpi-name').textContent = cached.name||'—'; document.getElementById('kpi-email').textContent = cached.email||'—'; afterSignIn(cached.t); }
+      if (cached){ window.__idToken = cached.t; document.getElementById('signedAs').textContent = `Signed in as ${cached.email||''}`; document.getElementById('kpi-name').textContent = cached.name||'—'; document.getElementById('kpi-email').textContent = cached.email||'—'; afterSignIn(cached.t); }
       initGis();
     }
 
     window.addEventListener('load', boot);
-  })();
   </script>
 </body>
 </html>
