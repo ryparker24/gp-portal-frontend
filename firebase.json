@@ -3,7 +3,11 @@
     "site": "gp-member-portal",
     "public": "public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "cleanUrls": true
+    "cleanUrls": true,
+    "rewrites": [
+      { "source": "/mint-doc", "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
+      { "source": "/dl",       "run": { "serviceId": "get-portal-data", "region": "us-west3" } },
+      { "source": "/getPortalData", "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
+    ]
   }
 }
-
