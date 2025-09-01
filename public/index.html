@@ -5,12 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    :root { --navy:#0b2545; --muted:#f5f7fb; }
-    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:#222; }
+    :root { --navy:#0b2545; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; }
+    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .header { margin-bottom:8px; }
+    .head-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .brand { display:flex; flex-direction:column; }
     .title { font-size: 22px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
+    .navlinks { margin-top:6px; }
+    .navlinks a { color:#2a4b8d; text-decoration:none; margin-right:12px; font-weight:500; }
+    .navlinks a.active { text-decoration:underline; }
+    .rightbox { text-align:right; min-width:280px; }
+    .statusline { display:flex; align-items:center; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+    #status { color:#b00; min-height:16px; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
     .kpi { font-size:28px; font-weight:700; }
@@ -18,33 +26,58 @@
     th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
     th { text-align:left; font-size:12px; color:#666; }
     td.num { text-align:right; white-space:nowrap; }
-    tr.entity-hdr td { background:#f5f7fb; font-weight:700; border-top:2px solid #e8edf7; }
-    tr.subtotal td { font-weight:700; border-top:2px solid #e8edf7; }
+    tr.entity-hdr td { background:#f5f7fb; font-weight:700; border-top:2px solid var(--border); }
+    tr.subtotal td { font-weight:700; border-top:2px solid var(--border); }
     tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
-    #status { color:#b00; margin:6px 0; min-height:16px; }
-    /* tiny nav links in the top-right "mode" area */
-    #mode a { color:#2a4b8d; text-decoration:none; margin-left:10px; }
-    #mode a.active { font-weight:700; }
     .hidden { display:none !important; }
-    .right { text-align:right; }
+
+    /* Impersonate panel */
+    #imp-wrap { margin-top:6px; }
+    #imp-toggle { background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    #imp-panel { margin-top:6px; background:#fff; border:1px solid #ccd6ee; border-radius:10px; padding:10px; }
+    #imp-panel .row { display:flex; gap:8px; flex-wrap:wrap; }
+    #imp-panel input { padding:6px 8px; border:1px solid #dde3f5; border-radius:8px; min-width:180px; }
+    #imp-panel button { padding:6px 10px; border:1px solid #dde3f5; border-radius:8px; background:#f5f7fb; cursor:pointer; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="header">
-      <div>
-        <div class="title" id="appTitle">GP Member Portal</div>
-        <div class="sub" id="buildTag">Build: —</div>
-      </div>
-      <div id="mode" class="sub">
-        <span id="signedAs">Signed out</span>
-        <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-        <a href="#/documents"   id="linkDocs">Documents</a>
-        <span id="g_id_signin" style="margin-left:8px;"></span>
-      </div>
-    </div>
+      <div class="head-row">
+        <div class="brand">
+          <div class="title" id="appTitle">GP Member Portal</div>
+          <div class="sub" id="buildTag">Build: —</div>
+          <div class="navlinks">
+            <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+            <a href="#/documents"   id="linkDocs">Documents</a>
+          </div>
+        </div>
 
-    <div id="status" class="sub"></div>
+        <div class="rightbox">
+          <div class="statusline">
+            <span id="signedAs" class="sub">Signed out</span>
+            <span id="g_id_signin"></span>
+          </div>
+          <div id="imp-wrap">
+            <button id="imp-toggle" class="sub">Impersonate</button>
+            <div id="imp-panel" class="hidden">
+              <div class="row">
+                <input id="imp-email" type="email" placeholder="Act as email (user@domain.com)" />
+                <input id="imp-reason" type="text"  placeholder="Reason (optional)" />
+                <input id="imp-token" type="password" placeholder="Admin token" />
+              </div>
+              <div class="row" style="margin-top:8px;">
+                <button id="imp-start">Start</button>
+                <button id="imp-stop">Stop</button>
+                <span id="imp-state" class="sub"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" class="sub" style="margin-top:6px;"></div>
+    </div>
 
     <div class="grid">
       <div class="card">
@@ -59,7 +92,7 @@
       </div>
     </div>
 
-    <!-- Transactions card (original layout) -->
+    <!-- Transactions (original layout) -->
     <div id="card-tx" class="card" style="margin-top:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
@@ -81,7 +114,7 @@
       </div>
     </div>
 
-    <!-- Documents card (cloned to match the look above) -->
+    <!-- Documents (same card/table look) -->
     <div id="card-docs" class="card hidden" style="margin-top:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <h3 style="margin:0;font-size:16px;">Documents</h3>
@@ -112,15 +145,12 @@
     // ===== CONFIG =====
     const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
     const CACHE_KEY = 'gp:idtoken';
-    const CURRENCY = 'USD';
-    const nf = new Intl.NumberFormat('en-US', { style:'currency', currency:CURRENCY, maximumFractionDigits:2 });
     // ==================
 
-    // ---- helpers: ui/status/format ----
-    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
     const safe = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const asDate = s => new Date(String(s||'').replace(/-/g,'/'));
     const money = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
     function parseMoney(v){
       const raw = String(v ?? '').trim(); if (!raw) return 0;
       const norm = raw.replace(/[\u2212\u2010-\u2015]/g, '-');
@@ -130,36 +160,26 @@
       return isNeg ? -mag : mag;
     }
 
-    // ---- token cache (no re-login on refresh) ----
+    // ===== token cache =====
     function decodeJwt(token){ try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p))));}catch(_){return {}} }
     function cacheToken(idToken){ const p=decodeJwt(idToken); localStorage.setItem(CACHE_KEY, JSON.stringify({ t:idToken, expMs:(p.exp||0)*1000, name:p.name||'', email:p.email||'' })); return idToken; }
     function getCached(){ try{const o=JSON.parse(localStorage.getItem(CACHE_KEY)||''); if(!o||!o.t||!o.expMs) return null; if(Date.now()<o.expMs-15000) return o; return null;}catch(_){return null} }
 
-    // ---- strict JSON POST ----
-    async function apiPost(path, body){
-      const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    // ===== admin (impersonation) state (memory only) =====
+    window.__admin = { actAs: null, token: null, reason: '' };
+
+    // ===== strict JSON POST with optional admin header =====
+    async function apiPost(path, body, extraHeaders){
+      const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
+      const r = await fetch(path, { method:'POST', headers, body: JSON.stringify(body) });
       const ct = r.headers.get('content-type')||''; const text = await r.text();
       if(!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
       const j = JSON.parse(text); if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`); return j;
     }
+    function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
+    function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
 
-    // ---- member name picker (original logic) ----
-    function pickMemberName(rows, fallbackEmail){
-      const fields = ['Member_Name','MemberName','Name','Member'];
-      for (const f of fields){
-        const r = rows.find(x => x && x[f] && String(x[f]).trim());
-        if (r) return String(r[f]).trim();
-      }
-      const q = rows.find(x => x && x.QB_Account && x.QB_Account.includes('-'));
-      if (q){
-        const last = String(q.QB_Account).split('-').pop().trim();
-        if (last && /[A-Za-z]/.test(last)) return last;
-      }
-      const local = (fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
-      return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
-    }
-
-    // ================== TRANSACTIONS (original renderer) ==================
+    // ===== transactions =====
     function renderTransactions(data){
       if (!data || !Array.isArray(data.tx)) {
         setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
@@ -170,7 +190,7 @@
       const rows = data.tx.map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount)
-                              : (parseMoney(r.Credit) - parseMoney(r.Debit)); // debit reduces, credit increases
+                              : (parseMoney(r.Credit) - parseMoney(r.Debit));
         return {
           date: asDate(r.Date),
           dateText: r.Date || '',
@@ -182,7 +202,7 @@
 
       const grandTotal = rows.reduce((a, r) => a + r.net, 0);
 
-      document.getElementById('kpi-name').textContent  = pickMemberName(data.tx, data.email || '');
+      document.getElementById('kpi-name').textContent  = (data.memberName || '') || (decodeJwt(window.__idToken).name || '—');
       document.getElementById('kpi-email').textContent = data.actingAs || data.email || '';
       document.getElementById('kpi-right-title').textContent = 'Current Balance';
       document.getElementById('kpi-right-value').textContent = money(grandTotal);
@@ -235,7 +255,7 @@
       tf.appendChild(gt);
     }
 
-    // ================== DOCUMENTS (clone of look/feel) ==================
+    // ===== documents =====
     function renderDocuments(docs){
       const tbody = document.querySelector('#docs tbody');
       const tfoot = document.querySelector('#docs tfoot');
@@ -243,91 +263,77 @@
 
       if (!docs || !docs.length){
         document.getElementById('docs-updated').textContent = '';
-        // KPIs: show docs count
         document.getElementById('kpi-right-title').textContent = 'Documents';
         document.getElementById('kpi-right-value').textContent = '0';
         document.getElementById('kpi-right-sub').textContent   = '—';
         return;
       }
 
-      // rows
       tbody.innerHTML = docs.map(r => `
         <tr>
           <td>${safe(r.Doc_Title || '')}</td>
           <td>${safe(r.Member_Name || '')}</td>
-          <td>${safe(r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : '')}</td>
+          <td>${r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : ''}</td>
           <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
           <td><button class="dl" data-fid="${safe(r.GoogleFileID)}">Download</button></td>
         </tr>
       `).join('');
 
-      // footer: total files
       const ft = document.createElement('tr');
       ft.className = 'grand';
       ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${docs.length}</strong></td><td></td>`;
       tfoot.appendChild(ft);
 
-      // KPIs: show docs count
       document.getElementById('kpi-right-title').textContent = 'Documents';
       document.getElementById('kpi-right-value').textContent = String(docs.length);
       document.getElementById('kpi-right-sub').textContent   = 'Available files';
       document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
 
+    async function loadTransactions(){
+      const body = { idToken: window.__idToken, ...adminBody() };
+      const data = await apiPost('/api/get-portal-data', body, adminHeaders());
+      renderTransactions(data);
+      document.getElementById('signedAs').textContent = (data.actingAs && data.actingAs !== data.email)
+        ? `Acting as ${data.actingAs} (admin: ${data.email})`
+        : `Signed in as ${data.email}`;
+    }
+
     async function loadDocuments(){
-      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
+      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken, ...adminBody() }, adminHeaders());
       renderDocuments(docs || []);
     }
 
     async function downloadDoc(fileId, btn){
       try{
         btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
-        const { token } = await apiPost('/api/mint-doc', { idToken: window.__idToken, fileId });
+        const { token } = await apiPost('/api/mint-doc', { idToken: window.__idToken, fileId, ...adminBody() }, adminHeaders());
         location.href = `/api/dl?token=${encodeURIComponent(token)}`;
         btn.textContent = old; btn.disabled = false;
       }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
     }
-
     document.addEventListener('click', (e)=>{
       const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b);
     });
 
-    // ================== ROUTER ==================
+    // ===== router =====
     function setRoute(hash){
-      const tx = document.getElementById('card-tx');
-      const dc = document.getElementById('card-docs');
       const isDocs = (hash === '#/documents');
-      tx.classList.toggle('hidden', isDocs);
-      dc.classList.toggle('hidden', !isDocs);
+      document.getElementById('card-tx').classList.toggle('hidden', isDocs);
+      document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
       document.getElementById('linkTx').classList.toggle('active', !isDocs);
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
       document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
-      if (isDocs && window.__idToken) loadDocuments();
+      if (!window.__idToken) return;
+      if (isDocs) loadDocuments(); else loadTransactions();
     }
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
-    // ================== SIGN-IN / BOOT ==================
-    async function afterSignIn(idToken){
-      const p = decodeJwt(idToken);
-      window.__idToken = cacheToken(idToken);
-
-      document.getElementById('signedAs').textContent = `Signed in as ${p.email || ''}`;
-      document.getElementById('kpi-name').textContent  = p.name || '—';
-      document.getElementById('kpi-email').textContent = p.email || '—';
-
-      setStatus('Loading transactions…');
-      try{
-        const data = await apiPost('/api/get-portal-data', { idToken });
-        renderTransactions(data);
-        setStatus('');
-        if (location.hash === '#/documents') loadDocuments();
-      }catch(e){ console.error(e); setStatus('Failed to load.'); }
-    }
-
+    // ===== GIS boot =====
     function initGis(){
       if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
       google.accounts.id.initialize({
-        client_id: WEB_CLIENT_ID,
+        client_id: '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com',
         callback: (resp)=>afterSignIn(resp.credential),
         auto_select: true,
         use_fedcm_for_prompt: true,
@@ -336,22 +342,59 @@
       if (document.getElementById('g_id_signin')) {
         google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme:'outline', size:'large' });
       }
-      google.accounts.id.prompt(); // silent reuse if possible
+      google.accounts.id.prompt();
+    }
+    function afterSignIn(idToken){
+      const p = decodeJwt(idToken);
+      window.__idToken = cacheToken(idToken);
+      document.getElementById('signedAs').textContent = `Signed in as ${p.email || ''}`;
+      document.getElementById('kpi-name').textContent  = p.name || '—';
+      document.getElementById('kpi-email').textContent = p.email || '—';
+      // load current view
+      setRoute(location.hash || '#/transactions');
     }
 
+    // ===== Impersonate UI =====
+    (function(){
+      const panel = document.getElementById('imp-panel');
+      const toggle= document.getElementById('imp-toggle');
+      const start = document.getElementById('imp-start');
+      const stop  = document.getElementById('imp-stop');
+      const state = document.getElementById('imp-state');
+      const iEmail= document.getElementById('imp-email');
+      const iReason=document.getElementById('imp-reason');
+      const iToken =document.getElementById('imp-token');
+
+      toggle.addEventListener('click', ()=> panel.classList.toggle('hidden'));
+
+      start.addEventListener('click', async ()=>{
+        window.__admin.actAs = (iEmail.value||'').trim().toLowerCase();
+        window.__admin.reason= (iReason.value||'').trim();
+        window.__admin.token = (iToken.value||'');
+        if (!window.__admin.actAs || !window.__admin.token) {
+          state.textContent = 'Enter act-as email and admin token.'; return;
+        }
+        state.textContent = 'Impersonation ON';
+        // reload current view using impersonation
+        setRoute(location.hash || '#/transactions');
+      });
+
+      stop.addEventListener('click', ()=>{
+        window.__admin = { actAs:null, token:null, reason:'' };
+        state.textContent = 'Impersonation OFF';
+        setRoute(location.hash || '#/transactions');
+      });
+    })();
+
+    // ===== boot =====
     function boot(){
-      // header values
       document.getElementById('appTitle').textContent = 'GP Member Portal';
       document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
-
       if (!location.hash) location.replace('#/transactions');
-      setRoute(location.hash);
-
       const cached = getCached();
-      if (cached){ window.__idToken = cached.t; document.getElementById('signedAs').textContent = `Signed in as ${cached.email||''}`; document.getElementById('kpi-name').textContent = cached.name||'—'; document.getElementById('kpi-email').textContent = cached.email||'—'; afterSignIn(cached.t); }
+      if (cached){ window.__idToken = cached.t; document.getElementById('signedAs').textContent = `Signed in as ${cached.email||''}`; document.getElementById('kpi-name').textContent = cached.name||'—'; document.getElementById('kpi-email').textContent = cached.email||'—'; setRoute(location.hash || '#/transactions'); }
       initGis();
     }
-
     window.addEventListener('load', boot);
   </script>
 </body>
