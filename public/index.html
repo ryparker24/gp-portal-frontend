@@ -4,28 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GP Member Portal</title>
-
   <style>
-    :root { --border:#e5e7eb; --muted:#6b7280; --bg:#f8fafc; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin: 0; background: #fff; color: #111827; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); background:#fff; position:sticky; top:0; z-index:10; }
-    .brand { font-weight:600; }
-    nav a { margin-left:14px; text-decoration:none; color:#374151; padding:6px 10px; border-radius:8px; }
-    nav a.active { background:var(--bg); border:1px solid var(--border); }
-    main { max-width:1100px; margin: 20px auto; padding: 0 20px; }
-    .row { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
-    .status { font-size:12px; color:var(--muted); }
-    .card { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
-    .card .hd { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-    .card .bd { padding:16px; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; font-size:14px; }
-    th { background:#f6f7fb; font-weight:600; }
-    button { padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); cursor:pointer; }
-    #g_id_signin { margin-left: 8px; }
-    .muted { color: var(--muted); }
-    .hidden { display:none !important; }
+    :root { --border:#e5e7eb; --muted:#6b7280; --bg:#f8fafc; --ink:#111827; --ink2:#374151; --ink3:#4b5563; }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fff;color:var(--ink)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:10}
+    .brand{font-weight:600}
+    nav a{margin-left:12px;text-decoration:none;color:var(--ink2);padding:6px 10px;border-radius:8px}
+    nav a.active{background:var(--bg);border:1px solid var(--border)}
+    #g_id_signin{margin-left:8px}
+    .status{font-size:12px;color:var(--muted);margin-left:6px}
+    main{max-width:1100px;margin:18px auto;padding:0 18px}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .card{border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden}
+    .hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .bd{padding:16px}
+    .kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .kpi{flex:1 1 240px;border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff}
+    .kpi .t{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .kpi .v{font-size:20px;font-weight:700}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;font-size:14px}
+    th{background:#f6f7fb;font-weight:600}
+    .group{background:#fafafa}
+    .group td{font-weight:600}
+    .grand{background:#f0f7f0}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .hidden{display:none !important}
+    button{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);cursor:pointer}
   </style>
 </head>
 <body>
@@ -40,23 +47,35 @@
   </header>
 
   <main>
-    <!-- Transactions View -->
+    <!-- Transactions -->
     <section id="view-transactions" class="card">
-      <div class="hd">
-        <div>Transactions</div>
-      </div>
+      <div class="hd"><div>Transactions</div></div>
       <div class="bd">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="t">Member</div>
+            <div class="v" id="kpi-name">—</div>
+            <div class="muted" id="kpi-email" style="font-size:12px;margin-top:4px">—</div>
+          </div>
+          <div class="kpi">
+            <div class="t">Total Balance</div>
+            <div class="v" id="kpi-total">$0</div>
+            <div class="muted" style="font-size:12px;margin-top:4px" id="kpi-rows">— rows</div>
+          </div>
+        </div>
+
         <div id="tx-empty" class="muted">No transactions found.</div>
-        <div id="tx-table-wrap" class="hidden">
-          <table id="tx-table">
+        <div id="tx-wrap" class="hidden">
+          <table>
             <thead id="tx-thead"></thead>
             <tbody id="tx-tbody"></tbody>
+            <tfoot id="tx-tfoot"></tfoot>
           </table>
         </div>
       </div>
     </section>
 
-    <!-- Documents View -->
+    <!-- Documents -->
     <section id="view-documents" class="card hidden">
       <div class="hd">
         <div>Documents</div>
@@ -64,14 +83,14 @@
       </div>
       <div class="bd">
         <div id="docs-empty" class="muted">No documents available.</div>
-        <div id="docs-table-wrap" class="hidden">
-          <table id="docs-table">
+        <div id="docs-wrap" class="hidden">
+          <table>
             <thead>
               <tr>
                 <th>Title</th>
                 <th>Member</th>
                 <th>Modified</th>
-                <th>Size</th>
+                <th class="right">Size</th>
                 <th></th>
               </tr>
             </thead>
@@ -82,415 +101,230 @@
     </section>
   </main>
 
-  <!-- Google Identity Services -->
+  <!-- GIS -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
-  (function () {
+  (function(){
+    // ===== CONFIG: tweak only if your column names are different =====
+    const GROUP_KEY_CANDIDATES = ['Entity','Fund','Vehicle','Partnership','Issuer','Company','Investment'];
+    const AMOUNT_COL_CANDIDATES = ['Amount','Net Amount','Net_Amount','Amount_USD','Balance','Balance_USD','NetBalance','Net'];
+    const MEMBER_NAME_COLS = ['Member_Name','MemberName','Name'];
+    const MEMBER_EMAIL_COLS = ['Member_Email','MemberEmail','Email','User_Email'];
+    const CURRENCY = 'USD';
+    // =================================================================
+
     const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
     const CACHE_KEY = 'gp:idtoken';
+    const nf = new Intl.NumberFormat('en-US', { style:'currency', currency:CURRENCY, maximumFractionDigits:2 });
+
     const statusEl = document.getElementById('status');
-
-    // ---------- utils ----------
     function setStatus(s){ statusEl.textContent = s; }
-    function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-    function fmtDate(iso){ if(!iso) return ''; const d = new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
-    function fmtSize(b){ const n=Number(b||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return `${x.toFixed(i?1:0)} ${u[i]}`; }
 
-    // ---------- token cache ----------
-    function decodeJwt(token) {
-      try {
-        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const json = atob(payload);
-        return JSON.parse(decodeURIComponent(escape(json)));
-      } catch { return {}; }
+    // ---- Token cache (no re-login on refresh) ----
+    function decodeJwt(token){
+      try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p))));}catch(_){return {}}
     }
-    function cacheToken(idToken) {
-      const p = decodeJwt(idToken);
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ t: idToken, expMs: (p.exp || 0) * 1000 }));
+    function cacheToken(idToken){
+      const p=decodeJwt(idToken); localStorage.setItem(CACHE_KEY, JSON.stringify({t:idToken, expMs:(p.exp||0)*1000, name:p.name||'', email:p.email||''}));
       return idToken;
     }
-    function getCachedToken() {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (!raw) return null;
-        const { t, expMs } = JSON.parse(raw);
-        if (!t || !expMs) return null;
-        if (Date.now() < (expMs - 15_000)) return t;
-        return null;
-      } catch { return null; }
+    function getCached(){ try{const o=JSON.parse(localStorage.getItem(CACHE_KEY)||''); if(!o||!o.t||!o.expMs) return null; if(Date.now()<o.expMs-15000) return o; return null;}catch(_){return null}}
+
+    // ---- strict JSON POST ----
+    async function apiPost(path, body){
+      const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const ct = r.headers.get('content-type')||''; const text = await r.text();
+      if(!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
+      const j = JSON.parse(text); if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`); return j;
     }
 
-    // ---------- strict JSON fetch ----------
-    async function apiPost(path, body) {
-      const r = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const ct = r.headers.get('content-type') || '';
-      const text = await r.text();
-      if (!ct.includes('application/json')) {
-        throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
-      }
-      const j = JSON.parse(text);
-      if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
-      return j;
+    // ---- Helpers for table rendering ----
+    const num = v => {
+      if (v==null) return 0;
+      const s = String(v).replace(/[\$,]/g,'').trim();
+      const x = Number(s); return isFinite(x) ? x : 0;
+    };
+    const firstExistingKey = (row, candidates) => candidates.find(k => k in row) || null;
+
+    // Pick a group key column present in most rows
+    function chooseGroupKey(rows){
+      for(const k of GROUP_KEY_CANDIDATES){ if(rows.some(r => r[k])) return k; }
+      return GROUP_KEY_CANDIDATES[0];
+    }
+    // Pick an amount column with meaningful totals
+    function chooseAmountCol(rows){
+      // prefer explicit names first
+      for(const k of AMOUNT_COL_CANDIDATES){ const tot = rows.reduce((a,r)=>a+num(r[k]),0); if (Math.abs(tot) > 0) return k; }
+      // fallback: first numeric-looking column
+      const keys = Object.keys(rows[0]||{});
+      for(const k of keys){ const tot = rows.reduce((a,r)=>a+num(r[k]),0); if (Math.abs(tot) > 0) return k; }
+      return null;
     }
 
-    // ---------- render: Transactions ----------
-    function renderTransactions(rows) {
-      const wrap = document.getElementById('tx-table-wrap');
+    function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleDateString(); }
+    function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // ================= TRANSACTIONS =================
+    function renderTransactions(rows, profile){
+      // KPIs
+      document.getElementById('kpi-name').textContent  = profile.name || '—';
+      document.getElementById('kpi-email').textContent = profile.email || '—';
+
+      const wrap  = document.getElementById('tx-wrap');
       const empty = document.getElementById('tx-empty');
       const thead = document.getElementById('tx-thead');
       const tbody = document.getElementById('tx-tbody');
+      const tfoot = document.getElementById('tx-tfoot');
 
-      if (!rows || !rows.length) {
-        wrap.classList.add('hidden');
-        empty.classList.remove('hidden');
-        empty.textContent = 'No transactions found.';
+      if (!rows || !rows.length){
+        wrap.classList.add('hidden'); empty.classList.remove('hidden');
+        document.getElementById('kpi-total').textContent = nf.format(0);
+        document.getElementById('kpi-rows').textContent  = '0 rows';
         return;
       }
 
-      // Build a stable set of columns across rows
-      const colsSet = new Set();
-      rows.forEach(r => Object.keys(r || {}).forEach(k => colsSet.add(k)));
-      const cols = Array.from(colsSet);
+      // Choose keys
+      const groupKey = chooseGroupKey(rows);
+      const amtKey   = chooseAmountCol(rows) || 'Amount';
 
-      thead.innerHTML = '<tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>';
-      tbody.innerHTML = rows.map(r => {
-        return '<tr>' + cols.map(c => `<td>${esc(r[c] ?? '')}</td>`).join('') + '</tr>';
-      }).join('');
+      // Build header (preserve main columns + amount on the right)
+      const cols = Object.keys(rows[0]).filter(k => k !== amtKey);
+      thead.innerHTML = `<tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}<th class="right">${esc(amtKey)}</th></tr>`;
 
-      empty.classList.add('hidden');
-      wrap.classList.remove('hidden');
+      // Group rows
+      const groups = new Map();
+      for (const r of rows){
+        const g = r[groupKey] || 'Other';
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(r);
+      }
+
+      // Render body with group subtotals
+      let grand = 0;
+      let bodyHtml = '';
+      for (const [gName, list] of groups.entries()){
+        const subtotal = list.reduce((a,r)=>a+num(r[amtKey]),0);
+        grand += subtotal;
+        bodyHtml += `<tr class="group"><td colspan="${cols.length}">${esc(gName)}</td><td class="right">${nf.format(subtotal)}</td></tr>`;
+        for (const r of list){
+          bodyHtml += `<tr>` +
+              cols.map(c => `<td>${esc(r[c])}</td>`).join('') +
+              `<td class="right">${nf.format(num(r[amtKey]))}</td>` +
+            `</tr>`;
+        }
+      }
+      tbody.innerHTML = bodyHtml;
+
+      // Grand total
+      tfoot.innerHTML = `<tr class="grand"><td colspan="${cols.length}"><b>Grand Total</b></td><td class="right"><b>${nf.format(grand)}</b></td></tr>`;
+
+      // KPIs
+      document.getElementById('kpi-total').textContent = nf.format(grand);
+      document.getElementById('kpi-rows').textContent  = `${rows.length} rows`;
+
+      empty.classList.add('hidden'); wrap.classList.remove('hidden');
     }
 
-    // ---------- render: Documents ----------
-    function renderDocs(rows) {
-      const wrap = document.getElementById('docs-table-wrap');
+    // ================= DOCUMENTS =================
+    async function listDocs(){
+      if (!window.__idToken) return;
+      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
+      const wrap = document.getElementById('docs-wrap');
       const empty = document.getElementById('docs-empty');
       const tbody = document.getElementById('docs-tbody');
 
-      if (!rows || !rows.length) {
-        wrap.classList.add('hidden');
-        empty.classList.remove('hidden');
-        empty.textContent = 'No documents available.';
-        return;
+      if (!docs || !docs.length){
+        wrap.classList.add('hidden'); empty.classList.remove('hidden'); return;
       }
-
-      tbody.innerHTML = rows.map(r => `
+      tbody.innerHTML = docs.map(r => `
         <tr>
           <td>${esc(r.Doc_Title || '')}</td>
           <td>${esc(r.Member_Name || '')}</td>
-          <td>${fmtDate(r.ModifiedTime)}</td>
-          <td>${fmtSize(r.SizeBytes)}</td>
-          <td><button type="button" class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
+          <td>${esc(r.ModifiedTime ? fmtDate(r.ModifiedTime) : '')}</td>
+          <td class="right">${r.SizeBytes ? esc(Number(r.SizeBytes).toLocaleString()) : ''}</td>
+          <td><button class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
         </tr>
       `).join('');
 
-      empty.classList.add('hidden');
-      wrap.classList.remove('hidden');
+      empty.classList.add('hidden'); wrap.classList.remove('hidden');
     }
-
-    // ---------- documents actions ----------
-    async function listDocs() {
-      if (!window.__idToken) { console.warn('[docs] no idToken'); return; }
-      setStatus('Loading documents…');
-      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
-      renderDocs(docs || []);
-      setStatus('Ready.');
-    }
-
-    async function downloadDoc(fileId, btn) {
-      try {
-        if (!window.__idToken) throw new Error('no idToken');
-        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+    async function downloadDoc(fileId, btn){
+      try{
+        btn.disabled=true; const old=btn.textContent; btn.textContent='Preparing…';
         const { token } = await apiPost('/api/mint-doc', { idToken: window.__idToken, fileId });
         location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-        btn.textContent = old; btn.disabled = false;
-      } catch (e) {
-        console.error(e); alert('Unable to download this file.');
-        btn.disabled = false; btn.textContent = 'Download';
-      }
+        btn.textContent=old; btn.disabled=false;
+      }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
     }
-
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.doc-dl');
-      if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.doc-dl'); if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
     });
 
-    // ---------- routing ----------
-    function setActiveNav() {
+    // ================= ROUTER =================
+    function setActiveNav(){
       const isDocs = location.hash === '#/documents';
       document.getElementById('nav-transactions').classList.toggle('active', !isDocs);
       document.getElementById('nav-documents').classList.toggle('active', isDocs);
     }
-    function onRouteChange() {
-      const isDocs = location.hash === '#/documents';
+    function showView(hash){
+      const isDocs = hash === '#/documents';
       document.getElementById('view-transactions').classList.toggle('hidden', isDocs);
       document.getElementById('view-documents').classList.toggle('hidden', !isDocs);
       setActiveNav();
-      if (isDocs) { listDocs(); }
+      if (isDocs) listDocs();
     }
-    window.addEventListener('hashchange', onRouteChange);
+    window.addEventListener('hashchange', () => showView(location.hash));
 
-    // ---------- sign-in lifecycle ----------
-    async function afterSignIn(idToken) {
-      // cache + expose globally
-      window.__idToken = cacheToken(idToken);
+    // ================= SIGN-IN / BOOT =================
+    async function afterSignIn(idToken){
+      const p = decodeJwt(idToken);
+      window.__idToken = cacheToken(idToken); // store + expose
 
-      // Transactions first
-      try {
-        setStatus('Loading transactions…');
-        const data = await apiPost('/api/get-portal-data', { idToken: window.__idToken });
-        renderTransactions(data.tx || []);
+      setStatus('Loading transactions…');
+      try{
+        const data = await apiPost('/api/get-portal-data', { idToken });
+        // Try to pick member name/email from rows if present; fallback to token
+        const sample = (data.tx && data.tx[0]) || {};
+        const nameKey  = firstExistingKey(sample, MEMBER_NAME_COLS);
+        const emailKey = firstExistingKey(sample, MEMBER_EMAIL_COLS);
+        const profile = {
+          name:  sample[nameKey]  || p.name  || '',
+          email: sample[emailKey] || p.email || ''
+        };
+        renderTransactions(data.tx || [], profile);
         setStatus('Ready.');
-      } catch (e) {
-        console.error('[init] transactions failed:', e);
-        setStatus('Failed to load.');
-      }
-
-      // If already on docs, load them
-      if (location.hash === '#/documents') {
-        try { await listDocs(); } catch (e) { console.error('[init] listDocs failed:', e); }
+        if (location.hash === '#/documents') listDocs();
+      }catch(e){
+        console.error(e); setStatus('Failed to load.');
       }
     }
 
-    function initGis() {
-      if (!window.google || !google.accounts || !google.accounts.id) {
-        // Retry if the script isn't ready yet (prevents blank page)
-        setTimeout(initGis, 50);
-        return;
-      }
+    function initGis(){
+      if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
       google.accounts.id.initialize({
         client_id: WEB_CLIENT_ID,
-        callback: (resp) => afterSignIn(resp.credential),
+        callback: (resp)=>afterSignIn(resp.credential),
         auto_select: true,
         use_fedcm_for_prompt: true,
         cancel_on_tap_outside: false
       });
-
-      // Optional visible button
       const btn = document.getElementById('g_id_signin');
-      if (btn) google.accounts.id.renderButton(btn, { theme: 'outline', size: 'large' });
-
-      // Attempt silent reuse of existing Google session
-      google.accounts.id.prompt();
+      if (btn) google.accounts.id.renderButton(btn, { theme:'outline', size:'large' });
+      google.accounts.id.prompt(); // silent reuse if possible
     }
 
-    async function boot() {
-      // Default route
+    function boot(){
       if (!location.hash) location.replace('#/transactions');
-      onRouteChange();
+      showView(location.hash);
 
-      // Try cached token (no click on refresh)
-      const cached = getCachedToken();
-      if (cached) {
-        window.__idToken = cached;
-        afterSignIn(cached); // fire-and-forget; GIS will refresh silently if needed
-      }
-
-      // Initialize GIS (may refresh token silently)
+      const cached = getCached();
+      if (cached){ window.__idToken = cached.t; document.getElementById('kpi-name').textContent = cached.name||'—'; document.getElementById('kpi-email').textContent = cached.email||'—'; afterSignIn(cached.t); }
       initGis();
     }
 
     window.addEventListener('load', boot);
   })();
-  </script><script>
-/**
- * Documents SPA add-on
- * - Mirrors the Transactions card styling by cloning its wrapper classes.
- * - No changes to your existing Transactions code or CSS.
- * - Assumes your app already sets window.__idToken when the user signs in.
- */
-(function () {
-  // --------- QUICK CONFIG: tweak only if selectors don't match your DOM ----------
-  const SEL = {
-    // The Transactions card wrapper we should copy classes from:
-    txCard: '#view-transactions, .transactions-card, [data-view="transactions"], .card',
-    // A place to insert the Documents card after (defaults to txCard's parent)
-    insertAfter: null, // e.g. '#content' to append into a specific container
-    // Nav link for Documents (optional): if present we set active class
-    navDocs: 'a[href="#/documents"]',
-    navTx:   'a[href="#/transactions"]'
-  };
-  // --------------------------------------------------------------------------------
-
-  // Strict JSON POST
-  async function apiPost(path, body) {
-    const r = await fetch(path, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    const ct = r.headers.get('content-type') || '';
-    const text = await r.text();
-    if (!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
-    const j = JSON.parse(text);
-    if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
-    return j;
-  }
-
-  // Token cache fallback (uses the same key we used earlier)
-  const CACHE_KEY = 'gp:idtoken';
-  function getCachedToken() {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return null;
-      const { t, expMs } = JSON.parse(raw);
-      if (!t || !expMs) return null;
-      if (Date.now() < (expMs - 15000)) return t;
-      return null;
-    } catch { return null; }
-  }
-  function ensureIdToken() {
-    if (!window.__idToken) {
-      const cached = getCachedToken();
-      if (cached) window.__idToken = cached;
-    }
-    return window.__idToken;
-  }
-
-  // Build the Documents card UI that looks like Transactions (clone class names)
-  function ensureDocsCard() {
-    if (document.getElementById('docs-card')) return document.getElementById('docs-card');
-
-    const txCard = document.querySelector(SEL.txCard);
-    const parent = SEL.insertAfter ? document.querySelector(SEL.insertAfter) : (txCard ? txCard.parentElement : document.body);
-
-    // Wrapper
-    const card = document.createElement('section');
-    card.id = 'docs-card';
-    // Copy classes from Transactions card if found
-    if (txCard && txCard.className) card.className = txCard.className;
-
-    // Header (try to mimic tx header block if present)
-    const hd = document.createElement('div');
-    hd.className = (txCard?.querySelector('.hd')?.className) || 'hd';
-    hd.innerHTML = `<div>Documents</div><a href="#/transactions" style="font-size:12px;text-decoration:none;opacity:.75">← Back</a>`;
-
-    // Body
-    const bd = document.createElement('div');
-    bd.className = (txCard?.querySelector('.bd')?.className) || 'bd';
-
-    // Table wrapper (try to copy tx table container classing)
-    const tableWrap = document.createElement('div');
-    tableWrap.id = 'docs-table-wrap';
-    tableWrap.style.display = 'none';
-
-    const table = document.createElement('table');
-    table.id = 'docs-table';
-    const txTable = txCard?.querySelector('table');
-    if (txTable && txTable.className) table.className = txTable.className;
-
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Member</th>
-          <th>Modified</th>
-          <th>Size</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="docs-tbody"></tbody>
-    `;
-
-    const empty = document.createElement('div');
-    empty.id = 'docs-empty';
-    empty.textContent = 'No documents available.';
-    empty.style.opacity = '.75';
-
-    tableWrap.appendChild(table);
-    bd.appendChild(empty);
-    bd.appendChild(tableWrap);
-    card.appendChild(hd);
-    card.appendChild(bd);
-
-    // Hide initially
-    card.style.display = 'none';
-
-    // Insert into DOM
-    parent.appendChild(card);
-    return card;
-  }
-
-  function setNavActive(isDocs) {
-    const aDocs = document.querySelector(SEL.navDocs);
-    const aTx   = document.querySelector(SEL.navTx);
-    aDocs && aDocs.classList.toggle('active', isDocs);
-    aTx   && aTx.classList.toggle('active', !isDocs);
-  }
-
-  function showDocumentsView(show) {
-    // Hide Transactions container when showing docs (if we can find it)
-    const txCard = document.querySelector(SEL.txCard);
-    if (txCard) txCard.style.display = show ? 'none' : '';
-    const docs = ensureDocsCard();
-    docs.style.display = show ? '' : 'none';
-    setNavActive(!!show);
-  }
-
-  function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
-  function fmtSize(b){ const n=Number(b||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return `${x.toFixed(i?1:0)} ${u[i]}`; }
-
-  async function listDocs() {
-    const idToken = ensureIdToken();
-    if (!idToken) { console.warn('[docs] no idToken yet'); return; }
-    const { docs } = await apiPost('/api/list-docs', { idToken });
-    const tbody = document.getElementById('docs-tbody');
-    const wrap  = document.getElementById('docs-table-wrap');
-    const empty = document.getElementById('docs-empty');
-
-    if (!docs || !docs.length) {
-      wrap.style.display = 'none';
-      empty.style.display = '';
-      return;
-    }
-    tbody.innerHTML = docs.map(r => `
-      <tr>
-        <td>${esc(r.Doc_Title || '')}</td>
-        <td>${esc(r.Member_Name || '')}</td>
-        <td>${fmtDate(r.ModifiedTime)}</td>
-        <td>${fmtSize(r.SizeBytes)}</td>
-        <td><button type="button" class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
-      </tr>
-    `).join('');
-    empty.style.display = 'none';
-    wrap.style.display = '';
-  }
-
-  async function downloadDoc(fileId, btn) {
-    try {
-      btn && (btn.disabled = true, btn.textContent = 'Preparing…');
-      const { token } = await apiPost('/api/mint-doc', { idToken: ensureIdToken(), fileId });
-      location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-    } catch (e) {
-      console.error(e); alert('Unable to download this file.');
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Download'; }
-    }
-  }
-
-  // Delegate download clicks
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.doc-dl');
-    if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
-  });
-
-  // Router hook
-  function onRoute() {
-    const isDocs = location.hash === '#/documents';
-    showDocumentsView(isDocs);
-    if (isDocs) listDocs();
-  }
-  window.addEventListener('hashchange', onRoute);
-  window.addEventListener('load', onRoute);
-})();
-</script>
-
+  </script>
 </body>
 </html>
-
