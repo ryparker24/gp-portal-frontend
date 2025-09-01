@@ -1,15 +1,9 @@
 {
   "hosting": {
+    "site": "gp-member-portal",
     "public": "public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "/api/get-portal-data",
-        "run": {
-          "serviceId": "get-portal-data",
-          "region": "us-west3"
-        }
-      }
-    ]
+    "cleanUrls": true
   }
 }
+
