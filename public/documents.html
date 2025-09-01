@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documents</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root { --fg:#111; --muted:#666; --line:#e5e7eb; --bg:#fff; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:var(--fg);background:var(--bg)}
+    h1{margin:0 0 12px}
+    .grid{display:grid;gap:12px;grid-template-columns:1fr}
+    .card{border:1px solid var(--line);border-radius:12px;padding:16px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    #status{font-size:12px;color:var(--muted)}
+    textarea{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    button{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+    th{background:#f5f7fa;text-align:left}
+    .hint{font-size:12px;color:var(--muted)}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
+  </style>
+</head>
+<body>
+  <h1>Documents</h1>
+
+  <div class="grid">
+    <div class="card row">
+      <div id="g_id_signin"></div>
+      <div id="status">Sign in to enable downloads…</div>
+      <div class="pill">Origin: this page</div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:start">
+        <div>
+          <strong>Paste CSV from your “Documents” sheet</strong>
+          <div class="hint">Required headers: <code>GoogleFileID, Doc_Title</code>. Optional: <code>Member_Name, Member_Email, ModifiedTime, SizeBytes</code>.</div>
+        </div>
+        <button id="parseBtn">Parse CSV</button>
+      </div>
+      <textarea id="csvInput" placeholder="Example:
+GoogleFileID,Doc_Title,Member_Name,Member_Email,ModifiedTime,SizeBytes
+1AbCDEFgHiJKlmnOP,Capital Call Q2 2025,Jane GP,jane@example.com,2025-08-10T12:34:56Z,123456
+"></textarea>
+    </div>
+
+    <div class="card">
+      <table id="docsTable" style="display:none">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Member</th>
+            <th>Modified</th>
+            <th>Size</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty" class="hint">No documents loaded yet.</div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG (yours) =====
+    const CLOUD_RUN_BASE = 'https://get-portal-data-468716163323.us-west3.run.app';
+    const WEB_CLIENT_ID  = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+
+    let idToken = null;
+    let rows = [];
+
+    // ---- Google Identity Services init ----
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: (response) => {
+          idToken = response.credential;
+          document.getElementById('status').textContent = 'Signed in. You can download documents.';
+        }
+      });
+      google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme: 'outline', size: 'large' });
+    };
+
+    // ---- CSV -> rows ----
+    document.getElementById('parseBtn').addEventListener('click', () => {
+      const text = document.getElementById('csvInput').value || '';
+      try {
+        rows = parseCSV(text);
+        render(rows);
+      } catch (e) {
+        alert('CSV parse error: ' + e.message);
+      }
+    });
+
+    function parseCSV(text) {
+      // minimal CSV parser (handles quotes and commas)
+      const out = [];
+      const lines = [];
+      let cur = '', inQ = false;
+      for (let i=0;i<text.length;i++){
+        const ch = text[i], nx = text[i+1];
+        if (inQ) {
+          if (ch === '"' && nx === '"'){ cur+='"'; i++; }
+          else if (ch === '"'){ inQ = false; }
+          else { cur += ch; }
+        } else {
+          if (ch === '"'){ inQ = true; }
+          else if (ch === ',' ){ lines.push(cur); cur=''; }
+          else if (ch === '\n'){ lines.push(cur); out.push(lines.splice(0)); cur=''; }
+          else if (ch === '\r'){ /* ignore */ }
+          else { cur += ch; }
+        }
+      }
+      if (cur.length || lines.length) { lines.push(cur); out.push(lines.splice(0)); }
+
+      // trim empty trailing lines
+      while (out.length && out[out.length-1].every(c=>!String(c).trim())) out.pop();
+
+      if (!out.length) return [];
+      const headers = out[0].map(h => String(h).trim());
+      const need = ['GoogleFileID','Doc_Title'];
+      need.forEach(h => { if (!headers.includes(h)) throw new Error('Missing header: '+h); });
+
+      const idx = Object.fromEntries(headers.map((h,i)=>[h,i]));
+      return out.slice(1).map(r => ({
+        GoogleFileID: val(r, idx.GoogleFileID),
+        Doc_Title:    val(r, idx.Doc_Title),
+        Member_Name:  val(r, idx.Member_Name),
+        Member_Email: val(r, idx.Member_Email),
+        ModifiedTime: val(r, idx.ModifiedTime),
+        SizeBytes:    val(r, idx.SizeBytes),
+      })).filter(x => x.GoogleFileID && x.Doc_Title);
+    }
+    function val(r, i){ return (i==null||i<0) ? '' : (r[i]||''); }
+
+    // ---- Render table ----
+    function render(list){
+      const tbl = document.getElementById('docsTable');
+      const empty = document.getElementById('empty');
+      const tbody = document.getElementById('tbody');
+      if (!list || !list.length){ tbl.style.display='none'; empty.style.display=''; tbody.innerHTML=''; return; }
+      tbl.style.display=''; empty.style.display='none';
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td>${esc(r.Doc_Title)}</td>
+          <td>${esc(r.Member_Name || '')}</td>
+          <td>${fmtDate(r.ModifiedTime)}</td>
+          <td>${fmtSize(r.SizeBytes)}</td>
+          <td><button onclick="downloadDoc('${encodeURIComponent(r.GoogleFileID)}', this)">Download</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // ---- Download flow ----
+    async function mintToken(fileId) {
+      if (!idToken) throw new Error('Please sign in first.');
+      const r = await fetch(\`\${CLOUD_RUN_BASE}/mint-doc\`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, fileId })
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || 'mint failed');
+      return j.token;
+    }
+
+    async function downloadDoc(fileId, btn) {
+      try {
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        const token = await mintToken(decodeURIComponent(fileId));
+        window.location.href = \`\${CLOUD_RUN_BASE}/dl?token=\${encodeURIComponent(token)}\`;
+        setTimeout(()=>{ btn.disabled=false; btn.textContent=old; }, 1500);
+      } catch (e) {
+        console.error(e); alert('Unable to download this file. ' + (e.message||e));
+        btn.disabled=false; btn.textContent='Download';
+      }
+    }
+
+    // ---- Utils ----
+    function fmtSize(bytes){ const n=Number(bytes||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB','TB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return \`\${x.toFixed(i?1:0)} \${u[i]}\`; }
+    function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
+    function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' }[c])); }
+  </script>
+</body>
+</html>
