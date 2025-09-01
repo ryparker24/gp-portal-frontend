@@ -12,7 +12,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@latest
 
@@ -21,10 +20,14 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           echo "Listing projects available to this token..."
-          firebase projects:list
-          echo "If 'gp-member-portal' is NOT in the list above, the token is from the wrong Google account."
+          firebase projects:list --project gp-member-portal
+          echo "If 'gp-member-portal' isn't listed, the token is wrong."
 
-      - name: Deploy Hosting
+      - name: Deploy Hosting (site: allegisgp)
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only hosting --project gp-member-portal --non-interactive
+        run: |
+          firebase deploy \
+            --only hosting:allegisgp \
+            --project gp-member-portal \
+            --non-interactive --debug
