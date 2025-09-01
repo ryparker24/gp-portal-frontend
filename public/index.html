@@ -5,30 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico">
-<meta name="theme-color" content="#1E2B45">
-<meta property="og:title" content="Allegis Portal">
-<meta property="og:description" content="Member transactions & documents">
-<meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
-<meta property="og:url" content="https://portal.allegiscapital.com">
-<style>
+  <meta name="theme-color" content="#1E2B45">
+  <meta property="og:title" content="Allegis Portal">
+  <meta property="og:description" content="Member transactions & documents">
+  <meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
+  <meta property="og:url" content="https://portal.allegiscapital.com">
+  <style>
     :root {
-  --navy:#1E2B45;         /* Allegis navy */
-  --red:#E94B3C;          /* Allegis signal red */
-  --muted:#f5f7fb;
-  --ink:#222;
-  --border:#e8edf7;
-}
-   .brand-row { display:flex; align-items:center; gap:10px; }
-.brand-row img { height:26px; }
-.title { color:var(--navy); }
-.navlinks a.active { text-decoration:underline; }
-.link-accent { color:var(--red); }
- body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
+      --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7;
+    }
+    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
     .header { margin-bottom:8px; }
     .head-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
     .brand { display:flex; flex-direction:column; }
-    .title { font-size: 22px; font-weight:700; color:var(--navy); }
+    .brand-row { display:flex; align-items:center; gap:10px; }
+    .brand-row img { height:26px; }
+    .title { font-size:22px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
     .navlinks { margin-top:6px; }
     .navlinks a { color:#2a4b8d; text-decoration:none; margin-right:12px; font-weight:500; }
@@ -39,7 +32,7 @@
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
     .kpi { font-size:28px; font-weight:700; }
-    table { width:100%; border-collapse: collapse; }
+    table { width:100%; border-collapse:collapse; }
     th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
     th { text-align:left; font-size:12px; color:#666; }
     td.num { text-align:right; white-space:nowrap; }
@@ -47,7 +40,6 @@
     tr.subtotal td { font-weight:700; border-top:2px solid var(--border); }
     tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
     .hidden { display:none !important; }
-
     /* Impersonate panel */
     #imp-wrap { margin-top:6px; }
     #imp-toggle { background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:6px 10px; cursor:pointer; }
@@ -62,18 +54,18 @@
     <div class="header">
       <div class="head-row">
         <div class="brand">
-  <div class="brand-row">
-    <img src="/assets/allegis-logo.svg" alt="Allegis Capital">
-    <div>
-      <div class="title" id="appTitle">Allegis Portal</div>
-      <div class="sub" id="buildTag">Build: —</div>
-    </div>
-  </div>
-  <div class="navlinks">
-    <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-    <a href="#/documents"   id="linkDocs">Documents</a>
-  </div>
-</div>
+          <div class="brand-row">
+            <img src="/assets/allegis-logo.svg" alt="Allegis Capital">
+            <div>
+              <div class="title" id="appTitle">Allegis Portal</div>
+              <div class="sub" id="buildTag">Build: —</div>
+            </div>
+          </div>
+          <div class="navlinks">
+            <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+            <a href="#/documents"   id="linkDocs">Documents</a>
+          </div>
+        </div>
         <div class="rightbox">
           <div class="statusline">
             <span id="signedAs" class="sub">Signed out</span>
@@ -113,7 +105,7 @@
       </div>
     </div>
 
-    <!-- Transactions (original layout) -->
+    <!-- Transactions -->
     <div id="card-tx" class="card" style="margin-top:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
@@ -122,12 +114,12 @@
       <div style="overflow:auto;">
         <table id="tx">
           <thead>
-            <tr>
-              <th style="width:110px;">Date</th>
-              <th>Description</th>
-              <th class="num" style="width:140px;">Net</th>
-              <th class="num" style="width:160px;">Running Balance</th>
-            </tr>
+          <tr>
+            <th style="width:110px;">Date</th>
+            <th>Description</th>
+            <th class="num" style="width:140px;">Net</th>
+            <th class="num" style="width:160px;">Running Balance</th>
+          </tr>
           </thead>
           <tbody></tbody>
           <tfoot></tfoot>
@@ -135,7 +127,7 @@
       </div>
     </div>
 
-    <!-- Documents (same card/table look) -->
+    <!-- Documents -->
     <div id="card-docs" class="card hidden" style="margin-top:12px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <h3 style="margin:0;font-size:16px;">Documents</h3>
@@ -144,13 +136,13 @@
       <div style="overflow:auto;">
         <table id="docs">
           <thead>
-            <tr>
-              <th>Title</th>
-              <th>Member</th>
-              <th style="width:160px;">Modified</th>
-              <th class="num" style="width:120px;">Size</th>
-              <th style="width:120px;"></th>
-            </tr>
+          <tr>
+            <th>Title</th>
+            <th>Member</th>
+            <th style="width:160px;">Modified</th>
+            <th class="num" style="width:120px;">Size</th>
+            <th style="width:120px;"></th>
+          </tr>
           </thead>
           <tbody></tbody>
           <tfoot></tfoot>
@@ -159,304 +151,256 @@
     </div>
   </div>
 
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-<script>
-  // ===== CONFIG =====
-  const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+  <script>
+    // ===== CONFIG =====
+    const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
 
-  // ===== utils (unchanged) =====
-  const safe = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const asDate = s => new Date(String(s||'').replace(/-/g,'/'));
-  const money = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
-  function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
-  function parseMoney(v){
-    const raw = String(v ?? '').trim(); if (!raw) return 0;
-    const norm = raw.replace(/[\u2212\u2010-\u2015]/g, '-');
-    const signProbe = norm.replace(/[^\d.\-()]/g, '');
-    const isNeg = /\(.*\)/.test(signProbe) || signProbe.includes('-');
-    const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
-    return isNeg ? -mag : mag;
-  }
-  function decodeJwt(token){ try{const p=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(escape(atob(p))));}catch(_){return {}} }
-
-  // ===== admin (impersonation) state (memory only) =====
-  window.__admin = { actAs: null, token: null, reason: '' };
-  function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
-  function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
-
-  // ===== strict JSON POST (now with credentials) =====
-  async function apiPost(path, body, extraHeaders){
-    const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
-    const r = await fetch(path, { method:'POST', headers, credentials:'include', body: JSON.stringify(body || {}) });
-    const ct = r.headers.get('content-type')||''; const text = await r.text();
-    if(!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
-    const j = JSON.parse(text); if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`); return j;
-  }
-  async function me(){ return fetch('/api/me', { credentials:'include' }); }
-
-  // ===== RENDER: Transactions (unchanged) =====
-  function renderTransactions(data){
-    if (!data || !Array.isArray(data.tx)) {
-      setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
-      return;
+    // ===== utils =====
+    const safe = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const asDate = s => new Date(String(s||'').replace(/-/g,'/'));
+    const money = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
+    function parseMoney(v){
+      const raw = String(v ?? '').trim(); if (!raw) return 0;
+      const norm = raw.replace(/[\u2212\u2010-\u2015]/g, '-');
+      const signProbe = norm.replace(/[^\d.\-()]/g, '');
+      const isNeg = /\(.*\)/.test(signProbe) || signProbe.includes('-');
+      const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
+      return isNeg ? -mag : mag;
     }
-    setStatus('');
-    function localPickMemberName(rows, fallbackEmail){
-      const fields = ['Member_Name','MemberName','Name','Member'];
-      for (const f of fields){
-        const r = rows.find(x => x && x[f] && String(x[f]).trim());
-        if (r) return String(r[f]).trim();
+
+    // ===== admin (impersonation) state =====
+    window.__admin = { actAs: null, token: null, reason: '' };
+    function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
+    function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
+
+    // ===== strict JSON POST with cookies =====
+    async function apiPost(path, body, extraHeaders){
+      const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
+      const r = await fetch(path, { method:'POST', headers, credentials:'include', body: JSON.stringify(body || {}) });
+      const ct = r.headers.get('content-type')||''; const text = await r.text();
+      if (!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
+      const j = JSON.parse(text); if(!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`); return j;
+    }
+    async function me(){ return fetch('/api/me', { credentials:'include' }); }
+
+    // ===== render: transactions =====
+    function renderTransactions(data){
+      if (!data || !Array.isArray(data.tx)) {
+        setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
+        return;
       }
-      const q = rows.find(x => x && x.QB_Account && String(x.QB_Account).includes('-'));
-      if (q){
-        const last = String(q.QB_Account).split('-').pop().trim();
-        if (last && /[A-Za-z]/.test(last)) return last;
+      setStatus('');
+      function localPickMemberName(rows, fallbackEmail){
+        const fields = ['Member_Name','MemberName','Name','Member'];
+        for (const f of fields){
+          const r = rows.find(x => x && x[f] && String(x[f]).trim());
+          if (r) return String(r[f]).trim();
+        }
+        const q = rows.find(x => x && x.QB_Account && String(x.QB_Account).includes('-'));
+        if (q){ const last = String(q.QB_Account).split('-').pop().trim(); if (last && /[A-Za-z]/.test(last)) return last; }
+        const local = String(fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
+        return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
       }
-      const local = String(fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
-      return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
-    }
-    const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
-    const memberEmail = data.actingAs || data.email || '';
+      const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
+      const memberEmail = data.actingAs || data.email || '';
 
-    const rows = data.tx.map(r=>{
-      const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
-      const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
-      return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
-    });
-
-    const grandTotal = rows.reduce((a, r) => a + r.net, 0);
-    document.getElementById('kpi-name').textContent  = memberDisplayName || '—';
-    document.getElementById('kpi-email').textContent = memberEmail || '—';
-    document.getElementById('kpi-right-title').textContent = 'Current Balance';
-    document.getElementById('kpi-right-value').textContent = money(grandTotal);
-    document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
-    document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
-
-    const tb = document.querySelector('#tx tbody');
-    const tf = document.querySelector('#tx tfoot');
-    tb.innerHTML = ''; tf.innerHTML = '';
-    const groups = new Map();
-    for (const it of rows) {
-      if (!groups.has(it.entity)) groups.set(it.entity, []);
-      groups.get(it.entity).push(it);
-    }
-    const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
-    for (const name of entityNames) {
-      const list = groups.get(name).sort((a,b)=> a.date - b.date);
-      const eh = document.createElement('tr');
-      eh.className = 'entity-hdr';
-      eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
-      tb.appendChild(eh);
-
-      let running = 0;
-      for (const r of list) {
-        running += r.net;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${safe(r.dateText)}</td>
-          <td>${safe(r.desc)}</td>
-          <td class="num">${money(r.net)}</td>
-          <td class="num">${money(running)}</td>`;
-        tb.appendChild(tr);
-      }
-      const sub = list.reduce((a, x) => a + x.net, 0);
-      const st = document.createElement('tr');
-      st.className = 'subtotal';
-      st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td>
-                      <td class="num"><strong>${money(sub)}</strong></td>
-                      <td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
-      tb.appendChild(st);
-    }
-    const gt = document.createElement('tr');
-    gt.className = 'grand';
-    gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td>
-                    <td class="num"><strong>${money(grandTotal)}</strong></td>
-                    <td class="num"><strong>${money(grandTotal)}</strong></td>`;
-    tf.appendChild(gt);
-
-    const signedAs = document.getElementById('signedAs');
-    if (signedAs) {
-      signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
-        ? `Acting as ${data.actingAs} (admin: ${data.email})`
-        : `Signed in as ${data.email}`;
-    }
-  }
-
-  // ===== RENDER: Documents (unchanged) =====
-  function renderDocuments(docs){
-    const tbody = document.querySelector('#docs tbody');
-    const tfoot = document.querySelector('#docs tfoot');
-    tbody.innerHTML = ''; tfoot.innerHTML = '';
-
-    if (!docs || !docs.length){
-      document.getElementById('docs-updated').textContent = '';
-      document.getElementById('kpi-right-title').textContent = 'Documents';
-      document.getElementById('kpi-right-value').textContent = '0';
-      document.getElementById('kpi-right-sub').textContent   = '—';
-      return;
-    }
-
-    tbody.innerHTML = docs.map(r => `
-      <tr>
-        <td>${safe(r.Doc_Title || '')}</td>
-        <td>${safe(r.Member_Name || '')}</td>
-        <td>${r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : ''}</td>
-        <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
-        <td><button class="dl" data-fid="${safe(r.GoogleFileID)}">Download</button></td>
-      </tr>
-    `).join('');
-
-    const ft = document.createElement('tr');
-    ft.className = 'grand';
-    ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${docs.length}</strong></td><td></td>`;
-    tfoot.appendChild(ft);
-
-    document.getElementById('kpi-right-title').textContent = 'Documents';
-    document.getElementById('kpi-right-value').textContent = String(docs.length);
-    document.getElementById('kpi-right-sub').textContent   = 'Available files';
-    document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
-  }
-
-  // ===== DATA LOADERS (updated to cookie session) =====
-  async function loadTransactions(){
-    const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders());
-    renderTransactions(data);
-  }
-  async function loadDocuments(){
-    const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders());
-    renderDocuments(docs || []);
-  }
-  async function downloadDoc(fileId, btn){
-    try{
-      btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
-      const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
-      location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-      btn.textContent = old; btn.disabled = false;
-    }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
-  }
-  document.addEventListener('click', (e)=>{
-    const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b);
-  });
-
-  // ===== Router (remove idToken gating) =====
-  function setRoute(hash){
-    const isDocs = (hash === '#/documents');
-    document.getElementById('card-tx').classList.toggle('hidden', isDocs);
-    document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
-    document.getElementById('linkTx').classList.toggle('active', !isDocs);
-    document.getElementById('linkDocs').classList.toggle('active', isDocs);
-    document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
-    if (isDocs) loadDocuments(); else loadTransactions();
-  }
-  window.addEventListener('hashchange', () => setRoute(location.hash));
-
-  // ===== GIS (prompt only on 401) =====
-  function initGis(){
-    if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
-    google.accounts.id.initialize({
-      client_id: WEB_CLIENT_ID,
-      callback: (resp)=>afterSignIn(resp.credential),
-      auto_select: true,
-      use_fedcm_for_prompt: true,
-      cancel_on_tap_outside: false
-    });
-    const btnHost = document.getElementById('g_id_signin');
-    if (btnHost) {
-      google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
-    }
-    google.accounts.id.prompt(); // shown only when needed
-  }
-
-  // After GIS returns a credential: create server session, then re-start
-  async function afterSignIn(credential){
-    try{
-      const r = await fetch('/api/session', {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        credentials:'include',
-        body: JSON.stringify({ credential })
+      const rows = data.tx.map(r=>{
+        const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
+        const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
+        return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
       });
-      if(!r.ok){ throw new Error('session create failed'); }
-      await start(); // re-run start flow (now /api/me will be 200)
-    }catch(e){
-      console.error(e);
-      setStatus('Sign-in failed. Please try again.');
-    }
-  }
 
-  // ===== Impersonate UI (unchanged) =====
-  (function(){
-    const panel = document.getElementById('imp-panel');
-    const toggle= document.getElementById('imp-toggle');
-    const startB= document.getElementById('imp-start');
-    const stopB = document.getElementById('imp-stop');
-    const state = document.getElementById('imp-state');
-    const iEmail= document.getElementById('imp-email');
-    const iReason=document.getElementById('imp-reason');
-    const iToken =document.getElementById('imp-token');
+      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
+      document.getElementById('kpi-name').textContent  = memberDisplayName || '—';
+      document.getElementById('kpi-email').textContent = memberEmail || '—';
+      document.getElementById('kpi-right-title').textContent = 'Current Balance';
+      document.getElementById('kpi-right-value').textContent = money(grandTotal);
+      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
+      document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
 
-    toggle.addEventListener('click', ()=> panel.classList.toggle('hidden'));
-
-    startB.addEventListener('click', async ()=>{
-      window.__admin.actAs = (iEmail.value||'').trim().toLowerCase();
-      window.__admin.reason= (iReason.value||'').trim();
-      window.__admin.token = (iToken.value||'');
-      if (!window.__admin.actAs || !window.__admin.token) {
-        state.textContent = 'Enter act-as email and admin token.'; return;
+      const tb = document.querySelector('#tx tbody');
+      const tf = document.querySelector('#tx tfoot');
+      tb.innerHTML = ''; tf.innerHTML = '';
+      const groups = new Map();
+      for (const it of rows) { if (!groups.has(it.entity)) groups.set(it.entity, []); groups.get(it.entity).push(it); }
+      const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+      for (const name of entityNames) {
+        const list = groups.get(name).sort((a,b)=> a.date - b.date);
+        const eh = document.createElement('tr'); eh.className = 'entity-hdr'; eh.innerHTML = `<td colspan="4">${safe(name)}</td>`; tb.appendChild(eh);
+        let running = 0;
+        for (const r of list) {
+          running += r.net;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
+          tb.appendChild(tr);
+        }
+        const sub = list.reduce((a, x) => a + x.net, 0);
+        const st = document.createElement('tr'); st.className = 'subtotal';
+        st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
+        tb.appendChild(st);
       }
-      state.textContent = 'Impersonation ON';
-      setRoute(location.hash || '#/transactions');
-    });
+      const gt = document.createElement('tr'); gt.className = 'grand';
+      gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td>`;
+      tf.appendChild(gt);
 
-    stopB.addEventListener('click', ()=>{
-      window.__admin = { actAs:null, token:null, reason:'' };
-      state.textContent = 'Impersonation OFF';
-      setRoute(location.hash || '#/transactions');
-    });
-  })();
-
-  // ===== Start flow: check session, render, otherwise show GIS =====
-  async function start(){
-    if (!location.hash) location.replace('#/transactions');
-
-    // Show build tag/title
-    document.getElementById('appTitle').textContent = 'GP Member Portal';
-    document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
-
-    // 1) Check if we already have a session
-    let r = await me();
-    if (r.ok){
-      const { user } = await r.json();
-      document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
-      document.getElementById('kpi-name').textContent  = user.name || '—';
-      document.getElementById('kpi-email').textContent = user.email || '—';
-      setRoute(location.hash || '#/transactions');
-      return;
+      const signedAs = document.getElementById('signedAs');
+      if (signedAs) {
+        signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
+          ? `Acting as ${data.actingAs} (admin: ${data.email})`
+          : `Signed in as ${data.email}`;
+      }
     }
 
-    // 2) Small retry to absorb refresh race
-    await new Promise(res => setTimeout(res, 250));
-    r = await me();
-    if (r.ok){
-      const { user } = await r.json();
-      document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
-      document.getElementById('kpi-name').textContent  = user.name || '—';
-      document.getElementById('kpi-email').textContent = user.email || '—';
-      setRoute(location.hash || '#/transactions');
-      return;
+    // ===== render: documents =====
+    function renderDocuments(docs){
+      const tbody = document.querySelector('#docs tbody');
+      const tfoot = document.querySelector('#docs tfoot');
+      tbody.innerHTML = ''; tfoot.innerHTML = '';
+
+      if (!docs || !docs.length){
+        document.getElementById('docs-updated').textContent = '';
+        document.getElementById('kpi-right-title').textContent = 'Documents';
+        document.getElementById('kpi-right-value').textContent = '0';
+        document.getElementById('kpi-right-sub').textContent   = '—';
+        return;
+      }
+
+      tbody.innerHTML = docs.map(r => `
+        <tr>
+          <td>${safe(r.Doc_Title || '')}</td>
+          <td>${safe(r.Member_Name || '')}</td>
+          <td>${r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : ''}</td>
+          <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
+          <td><button class="dl" data-fid="${safe(r.GoogleFileID)}">Download</button></td>
+        </tr>
+      `).join('');
+
+      const ft = document.createElement('tr');
+      ft.className = 'grand';
+      ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${docs.length}</strong></td><td></td>`;
+      tfoot.appendChild(ft);
+
+      document.getElementById('kpi-right-title').textContent = 'Documents';
+      document.getElementById('kpi-right-value').textContent = String(docs.length);
+      document.getElementById('kpi-right-sub').textContent   = 'Available files';
+      document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
 
-    // 3) No session -> initialize GIS once
-    initGis();
-  }
+    // ===== data loaders =====
+    async function loadTransactions(){ const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders()); renderTransactions(data); }
+    async function loadDocuments(){ const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders()); renderDocuments(docs || []); }
+    async function downloadDoc(fileId, btn){
+      try{
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
+        location.href = `/api/dl?token=${encodeURIComponent(token)}`;
+        btn.textContent = old; btn.disabled = false;
+      }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
+    }
+    document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
-  window.addEventListener('load', start);
-</script>
+    // ===== router =====
+    function setRoute(hash){
+      const isDocs = (hash === '#/documents');
+      document.getElementById('card-tx').classList.toggle('hidden', isDocs);
+      document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
+      document.getElementById('linkTx').classList.toggle('active', !isDocs);
+      document.getElementById('linkDocs').classList.toggle('active', isDocs);
+      document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
+      if (isDocs) loadDocuments(); else loadTransactions();
+    }
+    window.addEventListener('hashchange', () => setRoute(location.hash));
+
+    // ===== GIS init =====
+    function initGis(){
+      if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: ({credential}) => afterSignIn(credential),
+        auto_select: true,
+        use_fedcm_for_prompt: true,
+        cancel_on_tap_outside: false
+      });
+      const btnHost = document.getElementById('g_id_signin');
+      if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
+      google.accounts.id.prompt();
+    }
+
+    // ===== after sign-in → create server session =====
+    async function afterSignIn(credential){
+      try{
+        const r = await fetch('/api/session', {
+          method:'POST', headers:{'content-type':'application/json'},
+          credentials:'include', body: JSON.stringify({ credential })
+        });
+        if(!r.ok) throw new Error('session create failed');
+        await start(); // now /api/me will be 200
+      }catch(e){ console.error(e); setStatus('Sign-in failed. Please try again.'); }
+    }
+
+    // ===== impersonate UI =====
+    (function(){
+      const panel = document.getElementById('imp-panel');
+      const toggle= document.getElementById('imp-toggle');
+      const startB= document.getElementById('imp-start');
+      const stopB = document.getElementById('imp-stop');
+      const state = document.getElementById('imp-state');
+      const iEmail= document.getElementById('imp-email');
+      const iReason=document.getElementById('imp-reason');
+      const iToken =document.getElementById('imp-token');
+
+      toggle.addEventListener('click', ()=> panel.classList.toggle('hidden'));
+      startB.addEventListener('click', async ()=>{
+        window.__admin.actAs = (iEmail.value||'').trim().toLowerCase();
+        window.__admin.reason= (iReason.value||'').trim();
+        window.__admin.token = (iToken.value||'');
+        if (!window.__admin.actAs || !window.__admin.token) { state.textContent = 'Enter act-as email and admin token.'; return; }
+        state.textContent = 'Impersonation ON';
+        setRoute(location.hash || '#/transactions');
+      });
+      stopB.addEventListener('click', ()=>{
+        window.__admin = { actAs:null, token:null, reason:'' };
+        state.textContent = 'Impersonation OFF';
+        setRoute(location.hash || '#/transactions');
+      });
+    })();
+
+    // ===== start flow =====
+    async function start(){
+      if (!location.hash) location.replace('#/transactions');
+      document.getElementById('appTitle').textContent = 'GP Member Portal';
+      document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
+
+      // 1) do we already have a server session?
+      let r = await me();
+      if (r.ok){
+        const { user } = await r.json();
+        document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
+        document.getElementById('kpi-name').textContent  = user.name || '—';
+        document.getElementById('kpi-email').textContent = user.email || '—';
+        setRoute(location.hash || '#/transactions');
+        return;
+      }
+      // 2) absorb refresh race
+      await new Promise(res => setTimeout(res, 250));
+      r = await me();
+      if (r.ok){
+        const { user } = await r.json();
+        document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
+        document.getElementById('kpi-name').textContent  = user.name || '—';
+        document.getElementById('kpi-email').textContent = user.email || '—';
+        setRoute(location.hash || '#/transactions');
+        return;
+      }
+      // 3) no session → prompt GIS
+      initGis();
+    }
+
+    window.addEventListener('load', start);
+  </script>
 </body>
 </html>
-
-
-
-
