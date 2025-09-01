@@ -1,77 +1,302 @@
-<!-- Google Identity -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<div id="g_id_signin" style="margin:12px 0"></div>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GP Member Portal</title>
 
-<script>
-(function () {
-  // Your OAuth Web Client ID
-  const WEB_CLIENT_ID =
-    '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+  <style>
+    :root { --border:#e5e7eb; --muted:#6b7280; --bg:#f8fafc; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; margin: 0; background: #fff; color: #111827; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); background:#fff; position:sticky; top:0; z-index:10; }
+    .brand { font-weight:600; }
+    nav a { margin-left:14px; text-decoration:none; color:#374151; padding:6px 10px; border-radius:8px; }
+    nav a.active { background:var(--bg); border:1px solid var(--border); }
+    main { max-width:1100px; margin: 20px auto; padding: 0 20px; }
+    .row { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+    .status { font-size:12px; color:var(--muted); }
+    .card { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+    .card .hd { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .card .bd { padding:16px; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; font-size:14px; }
+    th { background:#f6f7fb; font-weight:600; }
+    button { padding:6px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); cursor:pointer; }
+    #g_id_signin { margin-left: 8px; }
+    .muted { color: var(--muted); }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">GP Member Portal</div>
+    <nav>
+      <a href="#/transactions" id="nav-transactions" class="active">Transactions</a>
+      <a href="#/documents" id="nav-documents">Documents</a>
+      <span class="status" id="status">Loading…</span>
+      <div id="g_id_signin"></div>
+    </nav>
+  </header>
 
-  // --- tiny helper for POSTing JSON and being strict about JSON responses ---
-  async function apiPost(path, body) {
-    const r = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const ct = r.headers.get('content-type') || '';
-    const text = await r.text();
-    if (!ct.includes('application/json')) {
-      throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
+  <main>
+    <!-- Transactions View -->
+    <section id="view-transactions" class="card">
+      <div class="hd">
+        <div>Transactions</div>
+      </div>
+      <div class="bd">
+        <div id="tx-empty" class="muted">No transactions found.</div>
+        <div id="tx-table-wrap" class="hidden">
+          <table id="tx-table">
+            <thead id="tx-thead"></thead>
+            <tbody id="tx-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Documents View -->
+    <section id="view-documents" class="card hidden">
+      <div class="hd">
+        <div>Documents</div>
+        <a href="#/transactions" class="muted" style="font-size:12px;text-decoration:none;">← Back to Transactions</a>
+      </div>
+      <div class="bd">
+        <div id="docs-empty" class="muted">No documents available.</div>
+        <div id="docs-table-wrap" class="hidden">
+          <table id="docs-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Member</th>
+                <th>Modified</th>
+                <th>Size</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="docs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+  (function () {
+    const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+    const CACHE_KEY = 'gp:idtoken';
+    const statusEl = document.getElementById('status');
+
+    // ---------- utils ----------
+    function setStatus(s){ statusEl.textContent = s; }
+    function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function fmtDate(iso){ if(!iso) return ''; const d = new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
+    function fmtSize(b){ const n=Number(b||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return `${x.toFixed(i?1:0)} ${u[i]}`; }
+
+    // ---------- token cache ----------
+    function decodeJwt(token) {
+      try {
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const json = atob(payload);
+        return JSON.parse(decodeURIComponent(escape(json)));
+      } catch { return {}; }
     }
-    const j = JSON.parse(text);
-    if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
-    return j;
-  }
+    function cacheToken(idToken) {
+      const p = decodeJwt(idToken);
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ t: idToken, expMs: (p.exp || 0) * 1000 }));
+      return idToken;
+    }
+    function getCachedToken() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const { t, expMs } = JSON.parse(raw);
+        if (!t || !expMs) return null;
+        if (Date.now() < (expMs - 15_000)) return t;
+        return null;
+      } catch { return null; }
+    }
 
-  // Called after Google signs the user in
-  async function afterSignIn(idToken) {
-    // === #1: make the id token available to the whole SPA (Documents uses this) ===
-    window.__idToken = idToken;
+    // ---------- strict JSON fetch ----------
+    async function apiPost(path, body) {
+      const r = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const ct = r.headers.get('content-type') || '';
+      const text = await r.text();
+      if (!ct.includes('application/json')) {
+        throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
+      }
+      const j = JSON.parse(text);
+      if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+      return j;
+    }
 
-    // Load Transactions (keep your existing renderer if present)
-    try {
-      // use the Hosting rewrite to Cloud Run; either /api/get-portal-data or /get-portal-data is fine
-      const data = await apiPost('/api/get-portal-data', { idToken });
-      // hand off to whatever you already use to render transactions
-      if (typeof renderTransactions === 'function') {
+    // ---------- render: Transactions ----------
+    function renderTransactions(rows) {
+      const wrap = document.getElementById('tx-table-wrap');
+      const empty = document.getElementById('tx-empty');
+      const thead = document.getElementById('tx-thead');
+      const tbody = document.getElementById('tx-tbody');
+
+      if (!rows || !rows.length) {
+        wrap.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.textContent = 'No transactions found.';
+        return;
+      }
+
+      // Build a stable set of columns across rows
+      const colsSet = new Set();
+      rows.forEach(r => Object.keys(r || {}).forEach(k => colsSet.add(k)));
+      const cols = Array.from(colsSet);
+
+      thead.innerHTML = '<tr>' + cols.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>';
+      tbody.innerHTML = rows.map(r => {
+        return '<tr>' + cols.map(c => `<td>${esc(r[c] ?? '')}</td>`).join('') + '</tr>';
+      }).join('');
+
+      empty.classList.add('hidden');
+      wrap.classList.remove('hidden');
+    }
+
+    // ---------- render: Documents ----------
+    function renderDocs(rows) {
+      const wrap = document.getElementById('docs-table-wrap');
+      const empty = document.getElementById('docs-empty');
+      const tbody = document.getElementById('docs-tbody');
+
+      if (!rows || !rows.length) {
+        wrap.classList.add('hidden');
+        empty.classList.remove('hidden');
+        empty.textContent = 'No documents available.';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${esc(r.Doc_Title || '')}</td>
+          <td>${esc(r.Member_Name || '')}</td>
+          <td>${fmtDate(r.ModifiedTime)}</td>
+          <td>${fmtSize(r.SizeBytes)}</td>
+          <td><button type="button" class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
+        </tr>
+      `).join('');
+
+      empty.classList.add('hidden');
+      wrap.classList.remove('hidden');
+    }
+
+    // ---------- documents actions ----------
+    async function listDocs() {
+      if (!window.__idToken) { console.warn('[docs] no idToken'); return; }
+      setStatus('Loading documents…');
+      const { docs } = await apiPost('/api/list-docs', { idToken: window.__idToken });
+      renderDocs(docs || []);
+      setStatus('Ready.');
+    }
+
+    async function downloadDoc(fileId, btn) {
+      try {
+        if (!window.__idToken) throw new Error('no idToken');
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        const { token } = await apiPost('/api/mint-doc', { idToken: window.__idToken, fileId });
+        location.href = `/api/dl?token=${encodeURIComponent(token)}`;
+        btn.textContent = old; btn.disabled = false;
+      } catch (e) {
+        console.error(e); alert('Unable to download this file.');
+        btn.disabled = false; btn.textContent = 'Download';
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.doc-dl');
+      if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
+    });
+
+    // ---------- routing ----------
+    function setActiveNav() {
+      const isDocs = location.hash === '#/documents';
+      document.getElementById('nav-transactions').classList.toggle('active', !isDocs);
+      document.getElementById('nav-documents').classList.toggle('active', isDocs);
+    }
+    function onRouteChange() {
+      const isDocs = location.hash === '#/documents';
+      document.getElementById('view-transactions').classList.toggle('hidden', isDocs);
+      document.getElementById('view-documents').classList.toggle('hidden', !isDocs);
+      setActiveNav();
+      if (isDocs) { listDocs(); }
+    }
+    window.addEventListener('hashchange', onRouteChange);
+
+    // ---------- sign-in lifecycle ----------
+    async function afterSignIn(idToken) {
+      // cache + expose globally
+      window.__idToken = cacheToken(idToken);
+
+      // Transactions first
+      try {
+        setStatus('Loading transactions…');
+        const data = await apiPost('/api/get-portal-data', { idToken: window.__idToken });
         renderTransactions(data.tx || []);
-      } else {
-        // fallback: stash so your existing code can read it
-        window.__tx = data.tx || [];
-        document.dispatchEvent(new CustomEvent('tx:update', { detail: window.__tx }));
+        setStatus('Ready.');
+      } catch (e) {
+        console.error('[init] transactions failed:', e);
+        setStatus('Failed to load.');
       }
-    } catch (e) {
-      console.error('[init] load transactions failed:', e);
-    }
 
-    // If user is on the Documents view, load that too (the SPA docs script defines listDocs)
-    try {
-      if (location.hash === '#/documents' && typeof listDocs === 'function') {
-        await listDocs(); // will POST /api/list-docs with window.__idToken
+      // If already on docs, load them
+      if (location.hash === '#/documents') {
+        try { await listDocs(); } catch (e) { console.error('[init] listDocs failed:', e); }
       }
-    } catch (e) {
-      console.error('[init] listDocs failed:', e);
     }
-  }
 
-  // Initialize Google Identity on page load and render a button if you have a container
-  window.addEventListener('load', () => {
-    if (!window.google || !google.accounts || !google.accounts.id) return;
+    function initGis() {
+      if (!window.google || !google.accounts || !google.accounts.id) {
+        // Retry if the script isn't ready yet (prevents blank page)
+        setTimeout(initGis, 50);
+        return;
+      }
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: (resp) => afterSignIn(resp.credential),
+        auto_select: true,
+        use_fedcm_for_prompt: true,
+        cancel_on_tap_outside: false
+      });
 
-    google.accounts.id.initialize({
-      client_id: WEB_CLIENT_ID,
-      callback: (resp) => afterSignIn(resp.credential),
-      auto_select: true,
-      cancel_on_tap_outside: false
-    });
+      // Optional visible button
+      const btn = document.getElementById('g_id_signin');
+      if (btn) google.accounts.id.renderButton(btn, { theme: 'outline', size: 'large' });
 
-    const btn = document.getElementById('g_id_signin');
-    if (btn) {
-      google.accounts.id.renderButton(btn, { theme: 'outline', size: 'large' });
+      // Attempt silent reuse of existing Google session
+      google.accounts.id.prompt();
     }
-  });
-})();
-</script>
 
+    async function boot() {
+      // Default route
+      if (!location.hash) location.replace('#/transactions');
+      onRouteChange();
+
+      // Try cached token (no click on refresh)
+      const cached = getCachedToken();
+      if (cached) {
+        window.__idToken = cached;
+        afterSignIn(cached); // fire-and-forget; GIS will refresh silently if needed
+      }
+
+      // Initialize GIS (may refresh token silently)
+      initGis();
+    }
+
+    window.addEventListener('load', boot);
+  })();
+  </script>
+</body>
+</html>
