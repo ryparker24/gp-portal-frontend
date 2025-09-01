@@ -1,74 +1,115 @@
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>
-  async function listDocs(idToken) {
-    const r = await fetch('/api/list-docs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken })
-    });
-    const j = await r.json();
-    if (!r.ok || !j.ok) throw new Error(j.error || 'list-docs failed');
-    return j.docs || [];
-  }
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documents</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    th,td{border-bottom:1px solid #e5e7eb;padding:8px;font-size:14px;vertical-align:top}
+    th{text-align:left;background:#f6f7fb}
+    button{padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc;cursor:pointer}
+    #status{font-size:12px;color:#666;margin:8px 0}
+  </style>
+</head>
+<body>
+  <h1>Documents</h1>
 
-  async function mintToken(idToken, fileId) {
-    const r = await fetch('/api/mint-doc', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken, fileId })
-    });
-    const j = await r.json();
-    if (!r.ok || !j.ok) throw new Error(j.error || 'mint failed');
-    return j.token;
-  }
+  <div id="g_id_signin"></div>
+  <div id="status">Sign in to load documents…</div>
 
-  function renderDocs(rows) {
-    const tbody = document.getElementById('tbody');
-    const tbl = document.getElementById('docsTable');
-    const empty = document.getElementById('empty');
-    if (!rows.length) { tbl.style.display='none'; empty.style.display=''; tbody.innerHTML=''; return; }
-    tbl.style.display=''; empty.style.display='none';
-    tbody.innerHTML = rows.map(r => `
+  <table id="docsTable" style="display:none">
+    <thead>
       <tr>
-        <td>${esc(r.Doc_Title || '')}</td>
-        <td>${esc(r.Member_Name || '')}</td>
-        <td>${fmtDate(r.ModifiedTime)}</td>
-        <td>${fmtSize(r.SizeBytes)}</td>
-        <td><button onclick="onDownload('${encodeURIComponent(r.GoogleFileID)}', this)">Download</button></td>
-      </tr>`).join('');
-  }
+        <th>Title</th>
+        <th>Member</th>
+        <th>Modified</th>
+        <th>Size</th>
+        <th>Download</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" style="color:#666">No documents found.</div>
 
-  async function onDownload(fileId, btn) {
-    try {
-      const token = await mintToken(window.__idToken, decodeURIComponent(fileId));
-      window.location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-    } catch (e) {
-      console.error(e); alert('Unable to download.');
-    }
-  }
+  <script>
+    // Your Web Client ID
+    const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
 
-  // GIS init
-  window.onload = function () {
-    google.accounts.id.initialize({
-      client_id: '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com',
-      callback: async (resp) => {
-        window.__idToken = resp.credential;
-        document.getElementById('status').textContent = 'Signed in. Loading documents…';
-        try {
-          const docs = await listDocs(resp.credential);
-          renderDocs(docs);
-          document.getElementById('status').textContent = 'Ready.';
-        } catch (e) {
-          console.error(e);
-          document.getElementById('status').textContent = 'Failed to load documents.';
-        }
+    window.onload = function () {
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: onSignedIn
+      });
+      google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme:'outline', size:'large' });
+    };
+
+    async function onSignedIn(resp){
+      const idToken = resp.credential;
+      document.getElementById('status').textContent = 'Loading documents…';
+
+      try {
+        // 1) fetch list
+        const r = await fetch('/api/list-docs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+
+        // 2) render rows
+        render(j.docs || []);
+        document.getElementById('status').textContent = 'Ready.';
+      } catch (e) {
+        console.error(e);
+        document.getElementById('status').textContent = 'Failed to load documents.';
       }
-    });
-    google.accounts.id.renderButton(document.getElementById('g_id_signin'), { theme: 'outline', size: 'large' });
-  };
+    }
 
-  // utils
-  function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
-  function fmtSize(bytes){ const n=Number(bytes||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return `${x.toFixed(i?1:0)} ${u[i]}`; }
-</script>
+    async function onDownload(fileId, btn){
+      try {
+        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        const r = await fetch('/api/mint-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: window.__lastToken, fileId })
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+        window.location.href = `/api/dl?token=${encodeURIComponent(j.token)}`;
+        btn.textContent = old; btn.disabled = false;
+      } catch (e) {
+        console.error(e); alert('Unable to download this file.');
+        btn.disabled = false; btn.textContent = 'Download';
+      }
+    }
+
+    function render(rows){
+      const tbl = document.getElementById('docsTable');
+      const empty = document.getElementById('empty');
+      const tbody = document.getElementById('tbody');
+
+      if (!rows.length){ tbl.style.display='none'; empty.style.display=''; tbody.innerHTML=''; return; }
+
+      tbl.style.display=''; empty.style.display='none';
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${esc(r.Doc_Title || '')}</td>
+          <td>${esc(r.Member_Name || '')}</td>
+          <td>${fmtDate(r.ModifiedTime)}</td>
+          <td>${fmtSize(r.SizeBytes)}</td>
+          <td><button onclick="onDownload('${r.GoogleFileID}', this)">Download</button></td>
+        </tr>
+      `).join('');
+    }
+
+    // utils
+    function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function fmtDate(iso){if(!iso)return'';const d=new Date(iso);return isNaN(d)?'':d.toLocaleString();}
+    function fmtSize(b){const n=Number(b||0);if(!isFinite(n)||n<=0)return'';const u=['B','KB','MB','GB'];let i=0,x=n;while(x>=1024&&i<u.length-1){x/=1024;i++;}return `${x.toFixed(i?1:0)} ${u[i]}`;}
+  </script>
+</body>
+</html>
