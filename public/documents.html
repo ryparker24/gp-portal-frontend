@@ -35,7 +35,7 @@
   <div id="empty" style="color:#666">No documents found.</div>
 
   <script>
-    // Your Web Client ID
+    // IMPORTANT: do not include any other site scripts here (no client.js)
     const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
 
     window.onload = function () {
@@ -47,42 +47,51 @@
     };
 
     async function onSignedIn(resp){
-      const idToken = resp.credential;
-      document.getElementById('status').textContent = 'Loading documents…';
+      window.__idToken = resp.credential;                       // save for downloads
+      setStatus('Loading documents…');
 
       try {
-        // 1) fetch list
+        console.log('[docs] POST /api/list-docs');
         const r = await fetch('/api/list-docs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken })
+          body: JSON.stringify({ idToken: window.__idToken })
         });
-        const j = await r.json();
-        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
 
-        // 2) render rows
+        const ct = r.headers.get('content-type') || '';
+        const text = await r.text();
+        if (!ct.includes('application/json')) {
+          console.error('[docs] Non-JSON from list-docs:', r.status, text.slice(0,200));
+          throw new Error('list-docs returned non-JSON');
+        }
+        const j = JSON.parse(text);
+        if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+        console.log('[docs] list-docs ->', j.docs?.length || 0, 'rows');
+
         render(j.docs || []);
-        document.getElementById('status').textContent = 'Ready.';
+        setStatus('Ready.');
       } catch (e) {
-        console.error(e);
-        document.getElementById('status').textContent = 'Failed to load documents.';
+        console.error('[docs] load failed:', e);
+        setStatus('Failed to load documents.');
       }
     }
 
     async function onDownload(fileId, btn){
       try {
         btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        console.log('[docs] POST /api/mint-doc', fileId);
         const r = await fetch('/api/mint-doc', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken: window.__lastToken, fileId })
+          body: JSON.stringify({ idToken: window.__idToken, fileId })
         });
         const j = await r.json();
         if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
         window.location.href = `/api/dl?token=${encodeURIComponent(j.token)}`;
         btn.textContent = old; btn.disabled = false;
       } catch (e) {
-        console.error(e); alert('Unable to download this file.');
+        console.error('[docs] download failed:', e);
+        alert('Unable to download this file.');
         btn.disabled = false; btn.textContent = 'Download';
       }
     }
@@ -105,6 +114,8 @@
         </tr>
       `).join('');
     }
+
+    function setStatus(s){ document.getElementById('status').textContent = s; }
 
     // utils
     function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
