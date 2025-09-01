@@ -297,6 +297,200 @@
 
     window.addEventListener('load', boot);
   })();
-  </script>
+  </script><script>
+/**
+ * Documents SPA add-on
+ * - Mirrors the Transactions card styling by cloning its wrapper classes.
+ * - No changes to your existing Transactions code or CSS.
+ * - Assumes your app already sets window.__idToken when the user signs in.
+ */
+(function () {
+  // --------- QUICK CONFIG: tweak only if selectors don't match your DOM ----------
+  const SEL = {
+    // The Transactions card wrapper we should copy classes from:
+    txCard: '#view-transactions, .transactions-card, [data-view="transactions"], .card',
+    // A place to insert the Documents card after (defaults to txCard's parent)
+    insertAfter: null, // e.g. '#content' to append into a specific container
+    // Nav link for Documents (optional): if present we set active class
+    navDocs: 'a[href="#/documents"]',
+    navTx:   'a[href="#/transactions"]'
+  };
+  // --------------------------------------------------------------------------------
+
+  // Strict JSON POST
+  async function apiPost(path, body) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const ct = r.headers.get('content-type') || '';
+    const text = await r.text();
+    if (!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
+    const j = JSON.parse(text);
+    if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
+    return j;
+  }
+
+  // Token cache fallback (uses the same key we used earlier)
+  const CACHE_KEY = 'gp:idtoken';
+  function getCachedToken() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const { t, expMs } = JSON.parse(raw);
+      if (!t || !expMs) return null;
+      if (Date.now() < (expMs - 15000)) return t;
+      return null;
+    } catch { return null; }
+  }
+  function ensureIdToken() {
+    if (!window.__idToken) {
+      const cached = getCachedToken();
+      if (cached) window.__idToken = cached;
+    }
+    return window.__idToken;
+  }
+
+  // Build the Documents card UI that looks like Transactions (clone class names)
+  function ensureDocsCard() {
+    if (document.getElementById('docs-card')) return document.getElementById('docs-card');
+
+    const txCard = document.querySelector(SEL.txCard);
+    const parent = SEL.insertAfter ? document.querySelector(SEL.insertAfter) : (txCard ? txCard.parentElement : document.body);
+
+    // Wrapper
+    const card = document.createElement('section');
+    card.id = 'docs-card';
+    // Copy classes from Transactions card if found
+    if (txCard && txCard.className) card.className = txCard.className;
+
+    // Header (try to mimic tx header block if present)
+    const hd = document.createElement('div');
+    hd.className = (txCard?.querySelector('.hd')?.className) || 'hd';
+    hd.innerHTML = `<div>Documents</div><a href="#/transactions" style="font-size:12px;text-decoration:none;opacity:.75">← Back</a>`;
+
+    // Body
+    const bd = document.createElement('div');
+    bd.className = (txCard?.querySelector('.bd')?.className) || 'bd';
+
+    // Table wrapper (try to copy tx table container classing)
+    const tableWrap = document.createElement('div');
+    tableWrap.id = 'docs-table-wrap';
+    tableWrap.style.display = 'none';
+
+    const table = document.createElement('table');
+    table.id = 'docs-table';
+    const txTable = txCard?.querySelector('table');
+    if (txTable && txTable.className) table.className = txTable.className;
+
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Member</th>
+          <th>Modified</th>
+          <th>Size</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="docs-tbody"></tbody>
+    `;
+
+    const empty = document.createElement('div');
+    empty.id = 'docs-empty';
+    empty.textContent = 'No documents available.';
+    empty.style.opacity = '.75';
+
+    tableWrap.appendChild(table);
+    bd.appendChild(empty);
+    bd.appendChild(tableWrap);
+    card.appendChild(hd);
+    card.appendChild(bd);
+
+    // Hide initially
+    card.style.display = 'none';
+
+    // Insert into DOM
+    parent.appendChild(card);
+    return card;
+  }
+
+  function setNavActive(isDocs) {
+    const aDocs = document.querySelector(SEL.navDocs);
+    const aTx   = document.querySelector(SEL.navTx);
+    aDocs && aDocs.classList.toggle('active', isDocs);
+    aTx   && aTx.classList.toggle('active', !isDocs);
+  }
+
+  function showDocumentsView(show) {
+    // Hide Transactions container when showing docs (if we can find it)
+    const txCard = document.querySelector(SEL.txCard);
+    if (txCard) txCard.style.display = show ? 'none' : '';
+    const docs = ensureDocsCard();
+    docs.style.display = show ? '' : 'none';
+    setNavActive(!!show);
+  }
+
+  function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleString(); }
+  function fmtSize(b){ const n=Number(b||0); if(!isFinite(n)||n<=0) return ''; const u=['B','KB','MB','GB']; let i=0,x=n; while(x>=1024&&i<u.length-1){x/=1024;i++;} return `${x.toFixed(i?1:0)} ${u[i]}`; }
+
+  async function listDocs() {
+    const idToken = ensureIdToken();
+    if (!idToken) { console.warn('[docs] no idToken yet'); return; }
+    const { docs } = await apiPost('/api/list-docs', { idToken });
+    const tbody = document.getElementById('docs-tbody');
+    const wrap  = document.getElementById('docs-table-wrap');
+    const empty = document.getElementById('docs-empty');
+
+    if (!docs || !docs.length) {
+      wrap.style.display = 'none';
+      empty.style.display = '';
+      return;
+    }
+    tbody.innerHTML = docs.map(r => `
+      <tr>
+        <td>${esc(r.Doc_Title || '')}</td>
+        <td>${esc(r.Member_Name || '')}</td>
+        <td>${fmtDate(r.ModifiedTime)}</td>
+        <td>${fmtSize(r.SizeBytes)}</td>
+        <td><button type="button" class="doc-dl" data-fid="${esc(r.GoogleFileID)}">Download</button></td>
+      </tr>
+    `).join('');
+    empty.style.display = 'none';
+    wrap.style.display = '';
+  }
+
+  async function downloadDoc(fileId, btn) {
+    try {
+      btn && (btn.disabled = true, btn.textContent = 'Preparing…');
+      const { token } = await apiPost('/api/mint-doc', { idToken: ensureIdToken(), fileId });
+      location.href = `/api/dl?token=${encodeURIComponent(token)}`;
+    } catch (e) {
+      console.error(e); alert('Unable to download this file.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Download'; }
+    }
+  }
+
+  // Delegate download clicks
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.doc-dl');
+    if (btn) downloadDoc(btn.getAttribute('data-fid'), btn);
+  });
+
+  // Router hook
+  function onRoute() {
+    const isDocs = location.hash === '#/documents';
+    showDocumentsView(isDocs);
+    if (isDocs) listDocs();
+  }
+  window.addEventListener('hashchange', onRoute);
+  window.addEventListener('load', onRoute);
+})();
+</script>
+
 </body>
 </html>
+
