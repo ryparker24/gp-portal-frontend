@@ -1,14 +1,19 @@
 name: Deploy to Firebase Hosting
-
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build_and_deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm install -g firebase-tools
-      - run: firebase deploy --project gp-member-portal --token "${{ secrets.FIREBASE_TOKEN }}"
+
+      # Uses your FIREBASE_TOKEN secret and firebase.json/.firebaserc
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}       # allows PR comments; harmless on push to main
+          firebaseToken: ${{ secrets.FIREBASE_TOKEN }} # you already have this secret
+          projectId: gp-member-portal
+          channelId: live
