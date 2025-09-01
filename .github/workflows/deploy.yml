@@ -12,16 +12,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools@latest
 
-      - name: Sanity check token can see the project
+      - name: "Sanity check token"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          echo "Listing projects available to this token..."
           firebase projects:list --project gp-member-portal
-          echo "If 'gp-member-portal' isn't listed, the token is wrong."
 
       - name: "Deploy Hosting (site: allegisgp)"
         env:
