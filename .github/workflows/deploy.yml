@@ -23,7 +23,7 @@ jobs:
           firebase projects:list --project gp-member-portal
           echo "If 'gp-member-portal' isn't listed, the token is wrong."
 
-      - name: Deploy Hosting (site: allegisgp)
+      - name: "Deploy Hosting (site: allegisgp)"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
