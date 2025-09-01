@@ -2,10 +2,20 @@
   "hosting": [{
     "site": "allegisgp",
     "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "cleanUrls": true,
     "rewrites": [
-      { "source": "/api/**", "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "get-portal-data",
+          "region": "us-west3"
+        }
+      }
     ],
     "headers": [
       {
@@ -13,6 +23,12 @@
         "headers": [
           { "key": "Cache-Control", "value": "no-store" },
           { "key": "Vary", "value": "Cookie" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=600" }
         ]
       }
     ]
