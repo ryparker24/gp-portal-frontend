@@ -4,9 +4,26 @@
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root { --navy:#0b2545; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; }
-    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
+  <link rel="icon" href="/favicon.ico">
+<meta name="theme-color" content="#1E2B45">
+<meta property="og:title" content="Allegis Portal">
+<meta property="og:description" content="Member transactions & documents">
+<meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
+<meta property="og:url" content="https://portal.allegiscapital.com">
+<style>
+    :root {
+  --navy:#1E2B45;         /* Allegis navy */
+  --red:#E94B3C;          /* Allegis signal red */
+  --muted:#f5f7fb;
+  --ink:#222;
+  --border:#e8edf7;
+}
+   .brand-row { display:flex; align-items:center; gap:10px; }
+.brand-row img { height:26px; }
+.title { color:var(--navy); }
+.navlinks a.active { text-decoration:underline; }
+.link-accent { color:var(--red); }
+ body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
     .header { margin-bottom:8px; }
     .head-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
@@ -45,14 +62,18 @@
     <div class="header">
       <div class="head-row">
         <div class="brand">
-          <div class="title" id="appTitle">GP Member Portal</div>
-          <div class="sub" id="buildTag">Build: —</div>
-          <div class="navlinks">
-            <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-            <a href="#/documents"   id="linkDocs">Documents</a>
-          </div>
-        </div>
-
+  <div class="brand-row">
+    <img src="/assets/allegis-logo.svg" alt="Allegis Capital">
+    <div>
+      <div class="title" id="appTitle">Allegis Portal</div>
+      <div class="sub" id="buildTag">Build: —</div>
+    </div>
+  </div>
+  <div class="navlinks">
+    <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+    <a href="#/documents"   id="linkDocs">Documents</a>
+  </div>
+</div>
         <div class="rightbox">
           <div class="statusline">
             <span id="signedAs" class="sub">Signed out</span>
@@ -432,5 +453,6 @@
   </script>
 </body>
 </html>
+
 
 
