@@ -11,10 +11,6 @@
   <meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
   <meta property="og:url" content="https://portal.allegiscapital.com">
   <style>
-      <nav class="navlinks">
-      <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-      <a href="#/documents" id="linkDocs">Documents</a>
-      </nav>
     :root { --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
@@ -24,6 +20,9 @@
     .topbar { display:flex; align-items:flex-start; justify-content:flex-end; gap:8px; flex:1; }
     .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
     #status { color:#b00; min-height:16px; }
+    .navlinks { margin-top:6px; }
+    .navlinks a { color:#2a4b8d; text-decoration:none; margin-right:12px; font-weight:500; }
+    .navlinks a.active { text-decoration:underline; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
     .kpi { font-size:28px; font-weight:700; }
@@ -36,7 +35,7 @@
     tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
     .hidden { display:none !important; }
 
-    /* Impersonation UI */
+    /* Impersonate UI */
     #imp-wrap { margin:0; display:flex; flex-direction:column; }
     #imp-toggle { margin-left:6px; background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:4px 8px; cursor:pointer; font-size:12px; color:#444; }
     #imp-panel { margin-top:6px; background:#fff; border:1px solid #ccd6ee; border-radius:10px; padding:10px; }
@@ -46,21 +45,24 @@
   </style>
 </head>
 <body>
-  <!-- ===== Main Content ===== -->
   <main class="content">
     <div class="wrap">
-      <!-- Title row -->
+      <!-- Header -->
       <div class="title-row">
         <div>
           <div class="title" id="appTitle">GP Member Portal</div>
           <div class="sub" id="buildTag">Build: —</div>
+          <nav class="navlinks">
+            <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+            <a href="#/documents" id="linkDocs">Documents</a>
+          </nav>
         </div>
         <div style="flex:1"></div>
-        <!-- Top right status area -->
         <div class="topbar">
           <div class="statusline">
             <span id="signedAs" class="sub">Signed out</span>
             <span id="g_id_signin"></span>
+            <button id="signin-manual" class="sub">Sign in</button>
             <div id="imp-wrap">
               <button id="imp-toggle" class="sub">Impersonate</button>
               <div id="imp-panel" class="hidden">
@@ -169,7 +171,7 @@
     function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
     function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
 
-    // ===== API helpers (with cookies + one-shot 401 retry) =====
+    // ===== API helper (cookie + 401 retry after session ensure) =====
     async function apiPost(path, body, extraHeaders){
       const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
       let r = await fetch(path, { method:'POST', headers, credentials:'include', body: JSON.stringify(body || {}) });
@@ -180,14 +182,12 @@
     }
 
     // ===== Session gate =====
-    let __sessionOK = false;
     async function ensureSession(timeoutMs = 5000) {
       const t0 = Date.now();
       while (Date.now() - t0 < timeoutMs) {
         const r = await fetch('/api/me', { credentials:'include' });
         if (r.ok) {
           const { user } = await r.json();
-          __sessionOK = true;
           document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
           document.getElementById('kpi-name').textContent  = user.name || '—';
           document.getElementById('kpi-email').textContent = user.email || '—';
@@ -195,7 +195,7 @@
         }
         await new Promise(res => setTimeout(res, 250));
       }
-      throw new Error('no session (timeout)');
+      throw new Error('no session');
     }
 
     // ===== Render: Transactions =====
@@ -211,7 +211,6 @@
         return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
       }
       const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
-      const memberEmail = data.actingAs || data.email || '';
       const rows = data.tx.map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
@@ -228,8 +227,8 @@
       tb.innerHTML = ''; tf.innerHTML = '';
       const groups = new Map();
       for (const it of rows) { if (!groups.has(it.entity)) groups.set(it.entity, []); groups.get(it.entity).push(it); }
-      const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
-      for (const name of entityNames) {
+      const names = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+      for (const name of names) {
         const list = groups.get(name).sort((a,b)=> a.date - b.date);
         tb.insertAdjacentHTML('beforeend', `<tr class="entity-hdr"><td colspan="4">${safe(name)}</td></tr>`);
         let running = 0;
@@ -242,15 +241,7 @@
         tb.insertAdjacentHTML('beforeend',
           `<tr class="subtotal"><td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(sub)}</strong></td></tr>`);
       }
-      document.querySelector('#tx tfoot').innerHTML =
-        `<tr class="grand"><td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td></tr>`;
-
-      const signedAs = document.getElementById('signedAs');
-      if (signedAs) {
-        signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
-          ? `Acting as ${data.actingAs} (admin: ${data.email})`
-          : `Signed in as ${data.email}`;
-      }
+      tf.innerHTML = `<tr class="grand"><td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td></tr>`;
     }
 
     // ===== Render: Documents =====
@@ -293,25 +284,25 @@
     }
     document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
-    // ===== Router =====
+    // ===== Router (null-safe) =====
     async function setRoute(hash){
       const isDocs = (hash === '#/documents');
-    
+
       const cardTx   = document.getElementById('card-tx');
       const cardDocs = document.getElementById('card-docs');
       const linkTx   = document.getElementById('linkTx');
       const linkDocs = document.getElementById('linkDocs');
-    
+
       if (cardTx)   cardTx.classList.toggle('hidden', isDocs);
       if (cardDocs) cardDocs.classList.toggle('hidden', !isDocs);
       if (linkTx)   linkTx.classList.toggle('active', !isDocs);
       if (linkDocs) linkDocs.classList.toggle('active', isDocs);
-    
+
       const titleEl = document.getElementById('kpi-right-title');
       if (titleEl) titleEl.textContent = isDocs ? 'Documents' : 'Current Balance';
-    
+
       try {
-        await ensureSession(6000);                 // wait for cookie to be valid
+        await ensureSession(6000);
         if (isDocs) await loadDocuments(); else await loadTransactions();
         setStatus('');
       } catch {
@@ -333,7 +324,7 @@
       });
       const btnHost = document.getElementById('g_id_signin');
       if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
-      google.accounts.id.prompt();
+      document.getElementById('signin-manual')?.addEventListener('click', () => google.accounts.id.prompt());
     }
 
     async function afterSignIn(credential){
@@ -343,8 +334,7 @@
           credentials:'include', body: JSON.stringify({ credential })
         });
         if(!r.ok) throw new Error('session create failed');
-        __sessionOK = true;
-        setRoute(location.hash || '#/transactions'); // wake up NOW
+        setRoute(location.hash || '#/transactions'); // wake up immediately
       }catch(e){ console.error(e); setStatus('Sign-in failed. Please try again.'); }
     }
 
@@ -390,4 +380,3 @@
   </script>
 </body>
 </html>
-
