@@ -577,8 +577,12 @@
         await reloadActiveTab();
 
         // Optional: warm both tabs once
-        Promise.resolve().then(()=>{ loadDocuments().catch(()=>{}); loadTransactions().catch(()=>{}); });
-
+       // Optional: warm tabs once (now includes Interests)
+        Promise.resolve().then(()=>{
+          loadDocuments().catch(()=>{});
+          loadTransactions().catch(()=>{});
+          loadInterests().catch(()=>{});   // ← add this line
+        });
       }catch(e){ console.error(e); setStatus('Sign-in failed. Please try again.'); }
     }
 
@@ -698,5 +702,6 @@
   </script>
 </body>
 </html>
+
 
 
