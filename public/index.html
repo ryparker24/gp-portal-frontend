@@ -249,12 +249,25 @@
         cache:'no-store',
         body: JSON.stringify(body || {})
       });
-      const ct = r.headers.get('content-type')||'';
-      const text = await r.text();
-      if (!ct.includes('application/json')) throw new Error(`Non-JSON from ${path}: ${r.status} ${text.slice(0,120)}`);
-      const j = JSON.parse(text);
-      if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
-      return j;
+    
+      const contentType = r.headers.get('content-type') || '';
+      const raw = await r.text();
+    
+      // Try to parse JSON if declared, otherwise wrap raw text
+      let j = null;
+      if (contentType.includes('application/json')) {
+        try { j = JSON.parse(raw); } catch { /* fall through */ }
+      }
+    
+      if (!r.ok || (j && j.error)) {
+        const msg = (j && (j.error || j.message)) || raw || `HTTP ${r.status}`;
+        const err = new Error(msg.trim());
+        err.status = r.status;
+        err.path = path;
+        throw err;
+      }
+    
+      return j ?? { ok: true, raw };
     }
     async function me(){
       return fetch('/api/me', { credentials:'include', cache:'no-store' });
@@ -404,12 +417,19 @@
 
     async function reloadActiveTab(){
       const isDocs = (location.hash === '#/documents');
+      const impState = document.getElementById('imp-state');
+    
       try{
         if (isDocs) await loadDocuments(); else await loadTransactions();
+        setStatus('');                        // clear any previous error
+        if (impState) impState.textContent = (window.__admin?.actAs ? 'Impersonation ON' : 'Impersonation OFF');
       }catch(e){
         console.error(e);
-        setStatus('Temporary loading issue. Retrying…');
-        await sleep(250);
+        const msg = (e && e.message) ? e.message : 'Unknown error';
+        setStatus(`Error loading ${isDocs ? 'documents' : 'transactions'}: ${msg}`);
+        if (impState) impState.textContent = `Error: ${msg}`;
+        // One quick retry only for transient cold-starts:
+        await new Promise(r => setTimeout(r, 400));
         if (isDocs) await loadDocuments(); else await loadTransactions();
       }
     }
@@ -498,16 +518,38 @@
         }
       }
 
-      startB.addEventListener('click', async ()=>{
-        window.__admin.actAs = (iEmail.value||'').trim().toLowerCase();
-        window.__admin.reason= (iReason.value||'').trim();
-        window.__admin.token = (iToken.value||'');
-        if (!window.__admin.actAs || !window.__admin.token) { state.textContent = 'Enter act-as email and admin token.'; return; }
-        await applyImpersonationUI();
-        panel.classList.add('hidden');
-        await reloadActiveTab(); // immediately reflect impersonation on the active tab
-      });
-
+    startB.addEventListener('click', async ()=>{
+      const email  = (iEmail.value||'').trim().toLowerCase();
+      const token  = (iToken.value||'').trim();
+      const reason = (iReason.value||'').trim();
+    
+      if (!email || !token){
+        state.textContent = 'Enter act-as email and admin token.';
+        return;
+      }
+      // Very light email sanity check
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+        state.textContent = 'Invalid email format.';
+        return;
+      }
+    
+      window.__admin.actAs = email;
+      window.__admin.token = token;
+      window.__admin.reason= reason;
+    
+      // Immediate UI feedback
+      const signedAs = document.getElementById('signedAs');
+      signedAs.textContent = `Acting as ${email} (admin session)`;
+      state.textContent = 'Impersonation ON';
+    
+      panel.classList.add('hidden');
+    
+      try{
+        await reloadActiveTab();            // Will surface server error if 401/403/etc.
+      }catch(e){
+        // reloadActiveTab already surfaced error; also keep panel closed
+      }
+    });
       stopB.addEventListener('click', async ()=>{
         window.__admin = { actAs:null, token:null, reason:'' };
         await applyImpersonationUI();
@@ -550,3 +592,4 @@
   </script>
 </body>
 </html>
+
