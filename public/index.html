@@ -39,9 +39,64 @@
     .sub { color:#666; font-size:12px; }
 
     /* ===== Top right status area ===== */
-    .topbar { display:flex; align-items:flex-start; justify-content:flex-end; gap:8px; }
-    .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    #status { color:#b00; min-height:16px; }
+    .topbar { 
+      display:flex; 
+      align-items:flex-start; 
+      justify-content:flex-end; 
+      gap:8px; 
+    }
+    
+    .statusline { 
+      display:flex; 
+      align-items:center; 
+      gap:8px; 
+      flex-wrap:wrap; 
+      justify-content:flex-end;
+    }
+    
+    #status { 
+      color:#b00; 
+      min-height:16px; 
+    }
+    
+    /* Impersonate controls aligned with statusline */
+    #imp-wrap { 
+      margin:0;               /* remove default margin */
+      display:flex; 
+      flex-direction:column;  /* toggle on same row, panel drops below */
+    }
+    
+    #imp-toggle { 
+      margin-left:6px; 
+      background:#fff; 
+      border:1px solid #ccd6ee; 
+      border-radius:8px; 
+      padding:4px 8px; 
+      cursor:pointer; 
+      font-size:12px; 
+      color:#444; 
+    }
+    
+    #imp-panel { 
+      margin-top:6px; 
+      background:#fff; 
+      border:1px solid #ccd6ee; 
+      border-radius:10px; 
+      padding:10px; 
+    }
+    
+    #imp-panel .row { 
+      display:flex; 
+      gap:8px; 
+      flex-wrap:wrap; 
+    }
+    
+    #imp-panel input { 
+      padding:6px 8px; 
+      border:1px solid #dde3f5; 
+      border-radius:8px; 
+      m
+
 
     /* ===== Sidebar nav ===== */
     .nav-section { margin-top:16px; }
@@ -109,19 +164,43 @@
     <main class="content">
       <div class="wrap">
         <!-- Title row (separate from logo row) -->
-        <div class="title-row">
-          <div class="title" id="appTitle">GP Member Portal</div>
-          <div class="sub" id="buildTag">Build: —</div>
+        <div class="title-row" style="display:flex; align-items:flex-start; gap:12px;">
+          <div>
+            <div class="title" id="appTitle">GP Member Portal</div>
+            <div class="sub" id="buildTag">Build: —</div>
+          </div>
+    
           <div style="flex:1"></div>
+    
+          <!-- Top bar: signed-in text, Google button, and Impersonate toggle on same row -->
           <div class="topbar">
             <div class="statusline">
               <span id="signedAs" class="sub">Signed out</span>
               <span id="g_id_signin"></span>
+    
+              <!-- Impersonation controls (toggle + collapsible panel) -->
+              <div id="imp-wrap">
+                <button id="imp-toggle" class="sub" style="margin-left:6px;">Impersonate</button>
+                <div id="imp-panel" class="hidden">
+                  <div class="row">
+                    <input id="imp-email" type="email" placeholder="Act as email (user@domain.com)" />
+                    <input id="imp-reason" type="text"  placeholder="Reason (optional)" />
+                    <input id="imp-token" type="password" placeholder="Admin token" />
+                  </div>
+                  <div class="row" style="margin-top:8px;">
+                    <button id="imp-start">Start</button>
+                    <button id="imp-stop">Stop</button>
+                    <span id="imp-state" class="sub"></span>
+                  </div>
+                </div>
+              </div>
+              <!-- /impersonation -->
             </div>
           </div>
         </div>
+    
         <div id="status" class="sub" style="margin-top:6px;"></div>
-
+    
         <!-- KPIs -->
         <div class="grid" style="margin-top:12px;">
           <div class="card">
@@ -135,6 +214,9 @@
             <div id="kpi-right-sub" class="sub" style="margin-top:4px;">—</div>
           </div>
         </div>
+      </div>
+    </main>
+
 
         <!-- Transactions -->
         <div id="card-tx" class="card" style="margin-top:12px;">
@@ -220,6 +302,26 @@
       const isNeg = /\(.*\)/.test(signProbe) || signProbe.includes('-');
       const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
       return isNeg ? -mag : mag;
+    }
+    let __sessionOK = false;
+    
+    // Poll /api/me until a session exists (or timeout)
+    async function ensureSession(timeoutMs = 5000) {
+      const t0 = Date.now();
+      while (Date.now() - t0 < timeoutMs) {
+        const r = await me();
+        if (r.ok) {
+          const { user } = await r.json();
+          __sessionOK = true;
+          // paint header immediately
+          document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
+          document.getElementById('kpi-name').textContent  = user.name || '—';
+          document.getElementById('kpi-email').textContent = user.email || '—';
+          return user;
+        }
+        await new Promise(res => setTimeout(res, 300));
+      }
+      throw new Error('no session (timeout)');
     }
 
     // ===== admin (impersonation) state =====
@@ -354,14 +456,25 @@
     document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
     // ===== router (unchanged IDs) =====
-    function setRoute(hash){
+    async function setRoute(hash){
       const isDocs = (hash === '#/documents');
+    
       document.getElementById('card-tx').classList.toggle('hidden', isDocs);
       document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
       document.getElementById('linkTx').classList.toggle('active', !isDocs);
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
       document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
-      if (isDocs) loadDocuments(); else loadTransactions();
+    
+      try {
+        // wait for cookie session (handles refresh + cold start)
+        await ensureSession(6000);
+        if (isDocs) await loadDocuments(); else await loadTransactions();
+        setStatus('');
+      } catch {
+        // No session yet → ask GIS to sign in
+        setStatus('Please sign in to load your data.');
+        initGis();
+      }
     }
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
@@ -390,6 +503,22 @@
         if(!r.ok) throw new Error('session create failed');
         await start(); // now /api/me will be 200
       }catch(e){ console.error(e); setStatus('Sign-in failed. Please try again.'); }
+    }
+    async function afterSignIn(credential){
+      try{
+        const r = await fetch('/api/session', {
+          method:'POST', headers:{'content-type':'application/json'},
+          credentials:'include', body: JSON.stringify({ credential })
+        });
+        if(!r.ok) throw new Error('session create failed');
+    
+        __sessionOK = true;
+        // Immediately re-run the current view (no need to wait for start())
+        setRoute(location.hash || '#/transactions');
+      }catch(e){
+        console.error(e);
+        setStatus('Sign-in failed. Please try again.');
+      }
     }
 
     // ===== impersonate UI =====
@@ -420,39 +549,24 @@
     })();
 
     // ===== start flow =====
-    async function start(){
-      if (!location.hash) location.replace('#/transactions');
-      document.getElementById('appTitle').textContent = 'GP Member Portal';
-      document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
+  async function start(){
+    if (!location.hash) location.replace('#/transactions');
+  
+    document.getElementById('appTitle').textContent = 'GP Member Portal';
+    document.getElementById('buildTag').textContent = 'Build: ' + new Date().toISOString().slice(0,10);
+  
+    // Try to use an existing session quickly; if not, prompt GIS.
+    ensureSession(1500).then(
+      () => setRoute(location.hash || '#/transactions'),
+      () => { initGis(); /* user will sign in; afterSignIn will call setRoute */ }
+    );
+  }
 
-      // 1) do we already have a server session?
-      let r = await me();
-      if (r.ok){
-        const { user } = await r.json();
-        document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
-        document.getElementById('kpi-name').textContent  = user.name || '—';
-        document.getElementById('kpi-email').textContent = user.email || '—';
-        setRoute(location.hash || '#/transactions');
-        return;
-      }
-      // 2) absorb refresh race
-      await new Promise(res => setTimeout(res, 250));
-      r = await me();
-      if (r.ok){
-        const { user } = await r.json();
-        document.getElementById('signedAs').textContent = `Signed in as ${user.email || ''}`;
-        document.getElementById('kpi-name').textContent  = user.name || '—';
-        document.getElementById('kpi-email').textContent = user.email || '—';
-        setRoute(location.hash || '#/transactions');
-        return;
-      }
-      // 3) no session → prompt GIS
-      initGis();
-    }
 
     window.addEventListener('load', start);
   </script>
 </body>
 </html>
+
 
 
