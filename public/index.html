@@ -13,25 +13,51 @@
   <style>
     :root {
       --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7;
+      --sidebar:#ffffff;
     }
+    * { box-sizing: border-box; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
-    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
-    .header { margin-bottom:8px; }
-    .head-row { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-    .brand { display:flex; flex-direction:column; }
-    .brand-row { display:flex; align-items:center; gap:10px; }
-    .brand-row img { height:26px; }
-    .title { font-size:22px; font-weight:700; color:var(--navy); }
+
+    /* ===== Layout ===== */
+    .app { display:grid; grid-template-columns: 240px 1fr; min-height:100vh; }
+    .sidebar {
+      background:var(--sidebar);
+      border-right:1px solid var(--border);
+      padding:16px 14px;
+      position:sticky; top:0; align-self:start; height:100vh; overflow:auto;
+    }
+    .content { padding:24px; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    /* ===== Header: brand row then title row ===== */
+    .brand-block { margin-bottom: 8px; }
+    .brand-row { display:flex; align-items:center; gap:12px; }
+    .brand-row img { height:56px; } /* <-- bigger logo */
+    .title-row { display:flex; align-items:baseline; gap:12px; margin-top:8px; }
+    .title { font-size:28px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
-    .navlinks { margin-top:6px; }
-    .navlinks a { color:#2a4b8d; text-decoration:none; margin-right:12px; font-weight:500; }
-    .navlinks a.active { text-decoration:underline; }
-    .rightbox { text-align:right; min-width:280px; }
-    .statusline { display:flex; align-items:center; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+
+    /* ===== Top right status area ===== */
+    .topbar { display:flex; align-items:flex-start; justify-content:flex-end; gap:8px; }
+    .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     #status { color:#b00; min-height:16px; }
+
+    /* ===== Sidebar nav ===== */
+    .nav-section { margin-top:16px; }
+    .nav-title { font-size:12px; color:#7a86a7; font-weight:700; letter-spacing:.04em; margin:14px 8px 8px; }
+    .nav { display:flex; flex-direction:column; gap:6px; }
+    .nav a {
+      display:block; padding:10px 12px; border-radius:10px; text-decoration:none;
+      color:#2a4b8d; font-weight:500;
+    }
+    .nav a.active { background:#eef3ff; text-decoration:none; }
+
+    /* ===== Cards & grid ===== */
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
     .kpi { font-size:28px; font-weight:700; }
+
+    /* ===== Tables ===== */
     table { width:100%; border-collapse:collapse; }
     th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
     th { text-align:left; font-size:12px; color:#666; }
@@ -39,7 +65,9 @@
     tr.entity-hdr td { background:#f5f7fb; font-weight:700; border-top:2px solid var(--border); }
     tr.subtotal td { font-weight:700; border-top:2px solid var(--border); }
     tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
+
     .hidden { display:none !important; }
+
     /* Impersonate panel */
     #imp-wrap { margin-top:6px; }
     #imp-toggle { background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:6px 10px; cursor:pointer; }
@@ -47,108 +75,130 @@
     #imp-panel .row { display:flex; gap:8px; flex-wrap:wrap; }
     #imp-panel input { padding:6px 8px; border:1px solid #dde3f5; border-radius:8px; min-width:180px; }
     #imp-panel button { padding:6px 10px; border:1px solid #dde3f5; border-radius:8px; background:#f5f7fb; cursor:pointer; }
+
+    /* Responsive */
+    @media (max-width: 920px){
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position:relative; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div class="head-row">
-        <div class="brand">
-          <div class="brand-row">
-            <img src="/assets/allegis-logo.svg" alt="Allegis Capital">
-            <div>
-              <div class="title" id="appTitle">Allegis Portal</div>
-              <div class="sub" id="buildTag">Build: —</div>
-            </div>
-          </div>
-          <div class="navlinks">
-            <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-            <a href="#/documents"   id="linkDocs">Documents</a>
-          </div>
-        </div>
-        <div class="rightbox">
-          <div class="statusline">
-            <span id="signedAs" class="sub">Signed out</span>
-            <span id="g_id_signin"></span>
-          </div>
-          <div id="imp-wrap">
-            <button id="imp-toggle" class="sub">Impersonate</button>
-            <div id="imp-panel" class="hidden">
-              <div class="row">
-                <input id="imp-email" type="email" placeholder="Act as email (user@domain.com)" />
-                <input id="imp-reason" type="text"  placeholder="Reason (optional)" />
-                <input id="imp-token" type="password" placeholder="Admin token" />
-              </div>
-              <div class="row" style="margin-top:8px;">
-                <button id="imp-start">Start</button>
-                <button id="imp-stop">Stop</button>
-                <span id="imp-state" class="sub"></span>
-              </div>
-            </div>
-          </div>
+  <div class="app">
+    <!-- ===== Left Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-row">
+          <img src="/assets/allegis-logo.svg" alt="Allegis Capital">
         </div>
       </div>
 
-      <div id="status" class="sub" style="margin-top:6px;"></div>
-    </div>
+      <div class="nav-section">
+        <div class="nav-title">Navigation</div>
+        <nav class="nav">
+          <!-- IDs preserved so existing router logic keeps working -->
+          <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+          <a href="#/documents" id="linkDocs">Documents</a>
+          <!-- Future items go here -->
+        </nav>
+      </div>
+    </aside>
 
-    <div class="grid">
-      <div class="card">
-        <div class="sub">Member</div>
-        <div id="kpi-name" class="kpi">—</div>
-        <div id="kpi-email" class="sub" style="margin-top:4px;">—</div>
-      </div>
-      <div class="card">
-        <div class="sub" id="kpi-right-title">Current Balance</div>
-        <div id="kpi-right-value" class="kpi">—</div>
-        <div id="kpi-right-sub" class="sub" style="margin-top:4px;">—</div>
-      </div>
-    </div>
+    <!-- ===== Main Content ===== -->
+    <main class="content">
+      <div class="wrap">
+        <!-- Title row (separate from logo row) -->
+        <div class="title-row">
+          <div class="title" id="appTitle">GP Member Portal</div>
+          <div class="sub" id="buildTag">Build: —</div>
+          <div style="flex:1"></div>
+          <div class="topbar">
+            <div class="statusline">
+              <span id="signedAs" class="sub">Signed out</span>
+              <span id="g_id_signin"></span>
+            </div>
+          </div>
+        </div>
+        <div id="status" class="sub" style="margin-top:6px;"></div>
 
-    <!-- Transactions -->
-    <div id="card-tx" class="card" style="margin-top:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
-        <div id="updated" class="sub"></div>
-      </div>
-      <div style="overflow:auto;">
-        <table id="tx">
-          <thead>
-          <tr>
-            <th style="width:110px;">Date</th>
-            <th>Description</th>
-            <th class="num" style="width:140px;">Net</th>
-            <th class="num" style="width:160px;">Running Balance</th>
-          </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot></tfoot>
-        </table>
-      </div>
-    </div>
+        <!-- KPIs -->
+        <div class="grid" style="margin-top:12px;">
+          <div class="card">
+            <div class="sub">Member</div>
+            <div id="kpi-name" class="kpi">—</div>
+            <div id="kpi-email" class="sub" style="margin-top:4px;">—</div>
+          </div>
+          <div class="card">
+            <div class="sub" id="kpi-right-title">Current Balance</div>
+            <div id="kpi-right-value" class="kpi">—</div>
+            <div id="kpi-right-sub" class="sub" style="margin-top:4px;">—</div>
+          </div>
+        </div>
 
-    <!-- Documents -->
-    <div id="card-docs" class="card hidden" style="margin-top:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0;font-size:16px;">Documents</h3>
-        <div id="docs-updated" class="sub"></div>
+        <!-- Transactions -->
+        <div id="card-tx" class="card" style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:16px;">Transactions by Entity</h3>
+            <div id="updated" class="sub"></div>
+          </div>
+          <div style="overflow:auto;">
+            <table id="tx">
+              <thead>
+              <tr>
+                <th style="width:110px;">Date</th>
+                <th>Description</th>
+                <th class="num" style="width:140px;">Net</th>
+                <th class="num" style="width:160px;">Running Balance</th>
+              </tr>
+              </thead>
+              <tbody></tbody>
+              <tfoot></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Documents -->
+        <div id="card-docs" class="card hidden" style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:16px;">Documents</h3>
+            <div id="docs-updated" class="sub"></div>
+          </div>
+          <div style="overflow:auto;">
+            <table id="docs">
+              <thead>
+              <tr>
+                <th>Title</th>
+                <th>Member</th>
+                <th style="width:160px;">Modified</th>
+                <th class="num" style="width:120px;">Size</th>
+                <th style="width:120px;"></th>
+              </tr>
+              </thead>
+              <tbody></tbody>
+              <tfoot></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Impersonation -->
+        <div id="imp-wrap" style="margin-top:12px;">
+          <button id="imp-toggle" class="sub">Impersonate</button>
+          <div id="imp-panel" class="hidden">
+            <div class="row">
+              <input id="imp-email" type="email" placeholder="Act as email (user@domain.com)" />
+              <input id="imp-reason" type="text"  placeholder="Reason (optional)" />
+              <input id="imp-token" type="password" placeholder="Admin token" />
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="imp-start">Start</button>
+              <button id="imp-stop">Stop</button>
+              <span id="imp-state" class="sub"></span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="overflow:auto;">
-        <table id="docs">
-          <thead>
-          <tr>
-            <th>Title</th>
-            <th>Member</th>
-            <th style="width:160px;">Modified</th>
-            <th class="num" style="width:120px;">Size</th>
-            <th style="width:120px;"></th>
-          </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot></tfoot>
-        </table>
-      </div>
-    </div>
+    </main>
   </div>
 
   <!-- Google Identity Services -->
@@ -303,7 +353,7 @@
     }
     document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
-    // ===== router =====
+    // ===== router (unchanged IDs) =====
     function setRoute(hash){
       const isDocs = (hash === '#/documents');
       document.getElementById('card-tx').classList.toggle('hidden', isDocs);
