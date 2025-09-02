@@ -18,6 +18,11 @@
     * { box-sizing: border-box; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
 
+    /* KPI sub-rows (match table body size/feel) */
+    .kpi-rows{ font-size:14px; line-height:1.35; }
+    .kpi-rows div{ margin-top:2px; }
+    .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
+
     /* ===== Layout ===== */
     .app { display:grid; grid-template-columns: 240px 1fr; min-height:100vh; }
     .sidebar {
@@ -493,15 +498,27 @@
       // ---- No-positions case
       if (!funds.length){
         tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
+      
+        // KPI values when there are no funds
+        const memberBalanceOutstanding = Number(payload.currentBalance || 0);
+        const capitalCalls = 0;
+        const contributionsToDate = capitalCalls - memberBalanceOutstanding;
+      
+        // ===== KPI (3 rows) =====
         const kTitle = document.getElementById('kpi-right-title');
         const kValue = document.getElementById('kpi-right-value');
         const kSub   = document.getElementById('kpi-right-sub');
+      
         kTitle.textContent = 'Capital Calls';
-        kValue.textContent = money(0);
+        kValue.textContent = money(capitalCalls);
         kSub.innerHTML = `
-          <div>(less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</div>
-          <div><strong>Member Contributions to Date</strong> — $${money(0 - memberBalanceOutstanding)}</div>
+          <div class="kpi-rows">
+            <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
+            <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
+            <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
+          </div>
         `;
+      
         updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
         return;
       }
@@ -835,6 +852,7 @@
   </script>
 </body>
 </html>
+
 
 
 
