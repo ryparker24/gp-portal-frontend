@@ -26,8 +26,9 @@
       padding:16px 14px;
       position:sticky; top:0; align-self:start; height:100vh; overflow:auto;
     }
-    .content { padding:24px; }
-    .wrap { max-width: 1100px; margin: 0 auto; }
+    .content { padding: 16px 24px 24px 12px; }
+    .wrap { max-width:1100px; margin:0; }
+    .sidebar .brand-row { margin-bottom: 44px; }  /* ~4 lines of space */
 
     /* ===== Header: brand row then title row ===== */
     .brand-block { margin-bottom: 8px; }
@@ -95,7 +96,6 @@
       </div>
 
       <div class="nav-section">
-        <div class="nav-title">Navigation</div>
         <nav class="nav">
           <!-- IDs preserved so existing router logic keeps working -->
           <a href="#/transactions" id="linkTx" class="active">Transactions</a>
@@ -454,3 +454,4 @@
   </script>
 </body>
 </html>
+
