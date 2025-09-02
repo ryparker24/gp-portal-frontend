@@ -238,6 +238,7 @@
     const safe   = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const asDate = s => new Date(String(s||'').replace(/-/g,'/'));
     const money  = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    const money0 = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:0, maximumFractionDigits:0});
     const sleep  = ms => new Promise(res => setTimeout(res, ms));
     function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
     function parseMoney(v){
@@ -433,27 +434,30 @@
         return;
       }
     
-      // Header row: 1st col is the row label, then each fund as a column, plus a Total column
+      // Header row: left-aligned label column, all fund/total headers right-aligned
       thead.innerHTML = `
         <tr>
           <th></th>
-          ${funds.map(f => `<th>${safe(f.fund)}</th>`).join('')}
+          ${funds.map(f => `<th class="num">${safe(f.fund)}</th>`).join('')}
           <th class="num">Total</th>
         </tr>
       `;
     
-      // Utility to add a row
-      function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false } = {}){
+      // Row builder — value cells are always right-justified
+      function addRow(label, field, { moneyCells=false, money0Cells=false, sumTotal=false, bold=false } = {}){
         const values = funds.map(f => {
-          const v = (typeof field === 'function') ? field(f) : (f[field]);
-          if (moneyCells) return `$${money(v || 0)}`;
-          return safe(v ?? '—');
+          const vRaw = (typeof field === 'function') ? field(f) : (f[field]);
+          if (moneyCells)  return `$${money(Number(vRaw||0))}`;
+          if (money0Cells) return `$${money0(Number(vRaw||0))}`;
+          return safe(vRaw ?? '—');
         });
     
-        // Total column rules: only sum for contribution rows
         let totalCell = '—';
         if (sumTotal){
-          const total = funds.reduce((a,f)=> a + Number((typeof field==='function'?field(f):f[field])||0), 0);
+          const total = funds.reduce((a,f)=>{
+            const vRaw = (typeof field==='function' ? field(f) : f[field]);
+            return a + Number(vRaw || 0);
+          }, 0);
           totalCell = `$${money(total)}`;
         }
     
@@ -461,24 +465,25 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td${cls}>${safe(label)}</td>
-          ${values.map(v => `<td class="${moneyCells?'num':''}">${v}</td>`).join('')}
+          ${values.map(v => `<td class="num">${v}</td>`).join('')}
           <td class="num">${totalCell}</td>
         `;
         tbody.appendChild(tr);
       }
     
-      // Static info rows (no totals on the far-right)
-      addRow('Start',                f => f.startDate);
-      addRow('Size',                 f => f.fundSize);
-      addRow('GP Commit',            f => f.gpCommit);
-      addRow('Your interest in GP',  f => f.interestPctDisplay);
+      // Static info rows (right-justified values; no totals on the far-right)
+      addRow('Start',               f => f.startDate);
+      addRow('Fund Size',     f => parseMoney(f.fundSize), { money0Cells:true });
+      addRow('GP Commitment', f => parseMoney(f.gpCommit), { money0Cells:true });
+      addRow('Your interest in GP', f => f.interestPctDisplay);
     
       // Contribution rows (sum on far-right)
       addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
       addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
     
       // Subtotal row (per fund employee+employer, sum on far-right)
-      addRow('Subtotal', f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)), { moneyCells:true, sumTotal:true, bold:true });
+      addRow('Subtotal', f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)),
+            { moneyCells:true, sumTotal:true, bold:true });
     
       // KPI box → show Grand Total = sum of fund subtotals
       const grand = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
@@ -488,13 +493,13 @@
     
       updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
     
-      // Signed-as line (unchanged behavior)
+      // Signed-as line (unchanged)
       const signedAs = document.getElementById('signedAs');
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
     }
-    
+   
     async function loadInterests(){
       const data = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
       renderInterests(data);
@@ -731,6 +736,7 @@
   </script>
 </body>
 </html>
+
 
 
 
