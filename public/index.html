@@ -108,9 +108,9 @@
       </div>
 
       <nav class="nav">
+        <a href="#/interests"   id="linkInterests">GP Interests</a>
         <a href="#/transactions" id="linkTx" class="active">Transactions</a>
-        <a href="#/documents"   id="linkDocs">Documents</a>
-        <a href="#/interests"  id="linkInterests">Interests</a>
+        <a href="#/documents"    id="linkDocs">Documents</a>
       </nav>
     </aside>
 
@@ -208,19 +208,19 @@
             </table>
           </div>
         </div>
-        <!-- === ADD: Member Interests (card) === -->
+        <!-- === GP Interests (table) === -->
         <div id="card-interests" class="card hidden" style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:16px;">Your Fund Interests</h3>
+            <h3 style="margin:0;font-size:16px;">GP Interests</h3>
             <div id="interests-updated" class="sub"></div>
           </div>
         
-          <div id="interests-list" style="margin-top:8px; display:flex; flex-direction:column; gap:12px;">
-            <!-- fund blocks rendered here -->
-          </div>
-        
-          <div id="interests-totals" style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
-            <!-- totals rendered here -->
+          <div style="overflow:auto; margin-top:6px;">
+            <table id="interests-table">
+              <thead></thead>
+              <tbody></tbody>
+              <tfoot></tfoot>
+            </table>
           </div>
         </div>
       </div>
@@ -403,15 +403,15 @@
       document.getElementById('kpi-right-sub').textContent   = 'Available files';
       document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
-    // === ADD: Member Interests (render) ===
+    // ===== render: table =====
     function renderInterests(payload){
-      const listEl   = document.getElementById('interests-list');
-      const totalsEl = document.getElementById('interests-totals');
-      const updEl    = document.getElementById('interests-updated');
+      const table = document.getElementById('interests-table');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      const tfoot = table.querySelector('tfoot');
+      const updEl = document.getElementById('interests-updated');
     
-      listEl.innerHTML = '';
-      totalsEl.innerHTML = '';
-      updEl.textContent = '';
+      thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = ''; updEl.textContent = '';
     
       if (!payload || !Array.isArray(payload.funds)) {
         setStatus('Unable to load interests.');
@@ -419,47 +419,76 @@
       }
       setStatus('');
     
-      // Per-fund blocks
-      if (!payload.funds.length) {
-        listEl.innerHTML = `<div class="sub">No positions found for your account.</div>`;
-      } else {
-        listEl.innerHTML = payload.funds.map(f => {
-          return `
-            <div class="card" style="padding:12px;">
-              <div style="font-weight:700; color:var(--navy); margin-bottom:4px;">[${safe(f.fund)}]</div>
-              <div style="padding-left:10px; line-height:1.6;">
-                <div>Start: ${safe(f.startDate || '—')}</div>
-                <div>Size: ${safe(f.fundSize || '—')}</div>
-                <div>GP Commit: ${safe(f.gpCommit || '—')}</div>
-                <div style="height:8px;"></div>
-                <div>Your interest in GP: ${safe(f.interestPctDisplay || '0%')}</div>
-                <div>Contributions (Employee): $${money(f.employeeContrib || 0)}</div>
-                <div>Contributions (Employer): $${money(f.employerContrib || 0)}</div>
-              </div>
-            </div>
-          `;
-        }).join('');
+      // Only include funds where the member has > 0 interest
+      const funds = (payload.funds || []).filter(f =>
+        (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0
+      );
+    
+      if (!funds.length){
+        tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
+        document.getElementById('kpi-right-title').textContent = 'Interests Total';
+        document.getElementById('kpi-right-value').textContent = money(0);
+        document.getElementById('kpi-right-sub').textContent   = '0 fund(s)';
+        updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+        return;
       }
     
-      // Totals
-      const t = payload.totals || { employee:0, employer:0, grand:0 };
-      totalsEl.innerHTML = `
-        <div style="font-weight:700; color:var(--navy); margin-bottom:4px;">[Total Across All Funds]</div>
-        <div style="padding-left:10px; line-height:1.6;">
-          <div>Contributions (Employee): $${money(t.employee || 0)}</div>
-          <div>Contributions (Employer): $${money(t.employer || 0)}</div>
-          <div><strong>Grand Total: $${money(t.grand || 0)}</strong></div>
-        </div>
+      // Header row: 1st col is the row label, then each fund as a column, plus a Total column
+      thead.innerHTML = `
+        <tr>
+          <th></th>
+          ${funds.map(f => `<th>${safe(f.fund)}</th>`).join('')}
+          <th class="num">Total</th>
+        </tr>
       `;
     
-      // KPI right box → show Grand Total for Interests view
+      // Utility to add a row
+      function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false } = {}){
+        const values = funds.map(f => {
+          const v = (typeof field === 'function') ? field(f) : (f[field]);
+          if (moneyCells) return `$${money(v || 0)}`;
+          return safe(v ?? '—');
+        });
+    
+        // Total column rules: only sum for contribution rows
+        let totalCell = '—';
+        if (sumTotal){
+          const total = funds.reduce((a,f)=> a + Number((typeof field==='function'?field(f):f[field])||0), 0);
+          totalCell = `$${money(total)}`;
+        }
+    
+        const cls = bold ? ' style="font-weight:700;"' : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td${cls}>${safe(label)}</td>
+          ${values.map(v => `<td class="${moneyCells?'num':''}">${v}</td>`).join('')}
+          <td class="num">${totalCell}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    
+      // Static info rows (no totals on the far-right)
+      addRow('Start',                f => f.startDate);
+      addRow('Size',                 f => f.fundSize);
+      addRow('GP Commit',            f => f.gpCommit);
+      addRow('Your interest in GP',  f => f.interestPctDisplay);
+    
+      // Contribution rows (sum on far-right)
+      addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
+      addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
+    
+      // Subtotal row (per fund employee+employer, sum on far-right)
+      addRow('Subtotal', f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)), { moneyCells:true, sumTotal:true, bold:true });
+    
+      // KPI box → show Grand Total = sum of fund subtotals
+      const grand = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
       document.getElementById('kpi-right-title').textContent = 'Interests Total';
-      document.getElementById('kpi-right-value').textContent = money((t.grand || 0));
-      document.getElementById('kpi-right-sub').textContent   = `${payload.funds?.length || 0} fund(s)`;
+      document.getElementById('kpi-right-value').textContent = money(grand);
+      document.getElementById('kpi-right-sub').textContent   = `${funds.length} fund(s)`;
     
       updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
     
-      // Signed-as line
+      // Signed-as line (unchanged behavior)
       const signedAs = document.getElementById('signedAs');
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
@@ -702,6 +731,7 @@
   </script>
 </body>
 </html>
+
 
 
 
