@@ -304,11 +304,14 @@
 
     // ===== render: transactions =====
     function renderTransactions(data){
+      // Basic guards
       if (!data || !Array.isArray(data.tx)) {
         setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
         return;
       }
       setStatus('');
+    
+      // Derive display name/email from rows (fallback to signed-in/acting-as)
       function localPickMemberName(rows, fallbackEmail){
         const fields = ['Member_Name','MemberName','Name','Member'];
         for (const f of fields){
@@ -316,71 +319,109 @@
           if (r) return String(r[f]).trim();
         }
         const q = rows.find(x => x && x.QB_Account && String(x.QB_Account).includes('-'));
-        if (q){ const last = String(q.QB_Account).split('-').pop().trim(); if (last && /[A-Za-z]/.test(last)) return last; }
+        if (q){
+          const last = String(q.QB_Account).split('-').pop().trim();
+          if (last && /[A-Za-z]/.test(last)) return last;
+        }
         const local = String(fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
         return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
       }
+    
       const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
-      const memberEmail = data.actingAs || data.email || '';
-
+      const memberEmail       = data.actingAs || data.email || '';
+    
+      // Normalize rows and compute net values
       const rows = data.tx.map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
-        return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
+        return {
+          date: asDate(r.Date),
+          dateText: r.Date || '',
+          desc: r.Description || '',
+          entity: r.EntityName || '—',
+          net: netVal
+        };
       });
-
-      // Capital Calls = sum of employee+employer across funds
-      const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
-      
-      // Member Balance Outstanding = Transactions grand total (cached or fetched)
-      const memberBalanceOutstanding = Number(payload.currentBalance || 0);
-      
-      // Member Contributions to Date = Capital Calls - Member Balance Outstanding
-      const contributionsToDate = capitalCalls - memberBalanceOutstanding;
-      
-      // Render the 3-row summary in the existing right KPI card
-      const kTitle = document.getElementById('kpi-right-title');
-      const kValue = document.getElementById('kpi-right-value');
-      const kSub   = document.getElementById('kpi-right-sub');
-      
-      kTitle.textContent = 'Capital Calls';
-      kValue.textContent = money(capitalCalls);
-      
-      // Use subline to render the 2 additional rows
-      kSub.innerHTML = `
-        <div>(less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</div>
-        <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
-      `;
-
-      document.getElementById('kpi-name').textContent  = memberDisplayName || '—';
-      document.getElementById('kpi-email').textContent = memberEmail || '—';
-      document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
+    
+      // Grand total (Outstanding Balance)
+      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
+    
+      // Top-right KPI (Transactions tab)
+      document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
+      document.getElementById('kpi-right-value').textContent = money(grandTotal);
+      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
+    
+      // Member info + last updated
+      document.getElementById('kpi-name').textContent   = memberDisplayName || '—';
+      document.getElementById('kpi-email').textContent  = memberEmail || '—';
+      document.getElementById('updated').textContent    = 'Updated ' + new Date(data.updated).toLocaleString();
+    
+      // Expose for other tabs (e.g., GP Interests needs this)
       window.__currentBalance = grandTotal;
+    
+      // === Render table: group by entity, running balances, subtotals, grand total
       const tb = document.querySelector('#tx tbody');
       const tf = document.querySelector('#tx tfoot');
-      tb.innerHTML = ''; tf.innerHTML = '';
+      tb.innerHTML = '';
+      tf.innerHTML = '';
+    
+      // Group rows by entity
       const groups = new Map();
-      for (const it of rows) { if (!groups.has(it.entity)) groups.set(it.entity, []); groups.get(it.entity).push(it); }
+      for (const it of rows) {
+        if (!groups.has(it.entity)) groups.set(it.entity, []);
+        groups.get(it.entity).push(it);
+      }
+    
       const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+    
       for (const name of entityNames) {
         const list = groups.get(name).sort((a,b)=> a.date - b.date);
-        const eh = document.createElement('tr'); eh.className = 'entity-hdr'; eh.innerHTML = `<td colspan="4">${safe(name)}</td>`; tb.appendChild(eh);
+    
+        // Entity header row
+        const eh = document.createElement('tr');
+        eh.className = 'entity-hdr';
+        eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
+        tb.appendChild(eh);
+    
+        // Running balance within the entity
         let running = 0;
         for (const r of list) {
           running += r.net;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
+          tr.innerHTML = `
+            <td>${safe(r.dateText)}</td>
+            <td>${safe(r.desc)}</td>
+            <td class="num">${money(r.net)}</td>
+            <td class="num">${money(running)}</td>
+          `;
           tb.appendChild(tr);
         }
+    
+        // Entity subtotal
         const sub = list.reduce((a, x) => a + x.net, 0);
-        const st = document.createElement('tr'); st.className = 'subtotal';
-        st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(list.reduce((a,x)=>a+x.net,0))}</strong></td>`;
+        const st = document.createElement('tr');
+        st.className = 'subtotal';
+        st.innerHTML = `
+          <td></td>
+          <td><strong>Subtotal – ${safe(name)}</strong></td>
+          <td class="num"><strong>${money(sub)}</strong></td>
+          <td class="num"><strong>${money(running)}</strong></td>
+        `;
         tb.appendChild(st);
       }
-      const gt = document.createElement('tr'); gt.className = 'grand';
-      gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td><td class="num"><strong>${money(grandTotal)}</strong></td>`;
+    
+      // Grand total footer
+      const gt = document.createElement('tr');
+      gt.className = 'grand';
+      gt.innerHTML = `
+        <td></td>
+        <td><strong>Grand Total</strong></td>
+        <td class="num"><strong>${money(grandTotal)}</strong></td>
+        <td class="num"><strong>${money(grandTotal)}</strong></td>
+      `;
       tf.appendChild(gt);
-
+    
+      // Signed-as line
       const signedAs = document.getElementById('signedAs');
       if (signedAs) {
         signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
@@ -587,9 +628,10 @@
         document.getElementById('kpi-right-title').textContent = 'Interests Total';
         loadInterests(); // ADD
       } else {
-        document.getElementById('kpi-right-title').textContent = 'Current Balance';
+        document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
         loadTransactions();
-      }
+        }
+
     }
 
     window.addEventListener('hashchange', () => setRoute(location.hash));
@@ -780,6 +822,7 @@
   </script>
 </body>
 </html>
+
 
 
 
