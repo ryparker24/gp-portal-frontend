@@ -329,14 +329,33 @@
         return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
       });
 
-      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
+      // Capital Calls = sum of employee+employer across funds
+      const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
+      
+      // Member Balance Outstanding = Transactions grand total (cached or fetched)
+      const memberBalanceOutstanding = Number(payload.currentBalance || 0);
+      
+      // Member Contributions to Date = Capital Calls - Member Balance Outstanding
+      const contributionsToDate = capitalCalls - memberBalanceOutstanding;
+      
+      // Render the 3-row summary in the existing right KPI card
+      const kTitle = document.getElementById('kpi-right-title');
+      const kValue = document.getElementById('kpi-right-value');
+      const kSub   = document.getElementById('kpi-right-sub');
+      
+      kTitle.textContent = 'Capital Calls';
+      kValue.textContent = money(capitalCalls);
+      
+      // Use subline to render the 2 additional rows
+      kSub.innerHTML = `
+        <div>(less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</div>
+        <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
+      `;
+
       document.getElementById('kpi-name').textContent  = memberDisplayName || '—';
       document.getElementById('kpi-email').textContent = memberEmail || '—';
-      document.getElementById('kpi-right-title').textContent = 'Current Balance';
-      document.getElementById('kpi-right-value').textContent = money(grandTotal);
-      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
       document.getElementById('updated').textContent  = 'Updated ' + new Date(data.updated).toLocaleString();
-
+      window.__currentBalance = grandTotal;
       const tb = document.querySelector('#tx tbody');
       const tf = document.querySelector('#tx tfoot');
       tb.innerHTML = ''; tf.innerHTML = '';
@@ -499,13 +518,38 @@
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
     }
-   
+       
     async function loadInterests(){
-      const data = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
+      const [data, currBal] = await Promise.all([
+        apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()),
+        getCurrentBalance()
+      ]);
+      data.currentBalance = currBal;      // attach for rendering
       renderInterests(data);
     }
-    // ========================================
 
+    // =======Top-Right "GP Interests" Box======
+    function computeGrandTotalFromTxRows(rows){
+      // rows is data.tx
+      const normRows = (rows || []).map(r=>{
+        const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
+        const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
+        return netVal;
+      });
+      return normRows.reduce((a,n)=>a+n,0);
+    }
+    
+    async function getCurrentBalance(){
+      if (typeof window.__currentBalance === 'number') return window.__currentBalance;
+      try{
+        const txData = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders());
+        const gt = computeGrandTotalFromTxRows(txData.tx || []);
+        window.__currentBalance = gt;
+        return gt;
+      }catch{
+        return 0;
+      }
+    }
     // ===== data loaders =====
     async function loadTransactions(){ const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders()); renderTransactions(data); }
     async function loadDocuments(){ const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders()); renderDocuments(docs || []); }
@@ -736,6 +780,7 @@
   </script>
 </body>
 </html>
+
 
 
 
