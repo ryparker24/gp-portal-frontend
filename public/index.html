@@ -11,6 +11,10 @@
   <meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
   <meta property="og:url" content="https://portal.allegiscapital.com">
   <style>
+      <nav class="navlinks">
+      <a href="#/transactions" id="linkTx" class="active">Transactions</a>
+      <a href="#/documents" id="linkDocs">Documents</a>
+      </nav>
     :root { --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
     .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
@@ -292,13 +296,22 @@
     // ===== Router =====
     async function setRoute(hash){
       const isDocs = (hash === '#/documents');
-      document.getElementById('card-tx').classList.toggle('hidden', isDocs);
-      document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
-      document.getElementById('linkTx').classList.toggle('active', !isDocs);
-      document.getElementById('linkDocs').classList.toggle('active', isDocs);
-      document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
+    
+      const cardTx   = document.getElementById('card-tx');
+      const cardDocs = document.getElementById('card-docs');
+      const linkTx   = document.getElementById('linkTx');
+      const linkDocs = document.getElementById('linkDocs');
+    
+      if (cardTx)   cardTx.classList.toggle('hidden', isDocs);
+      if (cardDocs) cardDocs.classList.toggle('hidden', !isDocs);
+      if (linkTx)   linkTx.classList.toggle('active', !isDocs);
+      if (linkDocs) linkDocs.classList.toggle('active', isDocs);
+    
+      const titleEl = document.getElementById('kpi-right-title');
+      if (titleEl) titleEl.textContent = isDocs ? 'Documents' : 'Current Balance';
+    
       try {
-        await ensureSession(6000);
+        await ensureSession(6000);                 // wait for cookie to be valid
         if (isDocs) await loadDocuments(); else await loadTransactions();
         setStatus('');
       } catch {
@@ -377,3 +390,4 @@
   </script>
 </body>
 </html>
+
