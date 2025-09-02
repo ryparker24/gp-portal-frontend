@@ -1,0 +1,38 @@
+name: OIDC — Print claims
+on:
+  workflow_dispatch: {}   # run manually from the Actions tab
+
+jobs:
+  show-claims:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # <-- required to request an OIDC token
+      contents: read
+    steps:
+      - name: Request OIDC token
+        id: get_token
+        env:
+          # Use the SAME audience you configured on the GCP provider.
+          # If you left "Default audience", you can drop the &audience=… part.
+          AUDIENCE: https://github.com/allegiscapital   # <-- change if needed
+        run: |
+          set -euo pipefail
+          RESP=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${AUDIENCE}")
+          echo "token=$(echo "$RESP" | jq -r .value)" >> "$GITHUB_OUTPUT"
+
+      - name: Print OIDC claims (no secrets)
+        env:
+          TOKEN: ${{ steps.get_token.outputs.token }}
+        run: |
+          python3 - <<'PY'
+import os, json, base64
+tok = os.environ['TOKEN']
+payload = tok.split('.')[1]
+# urlsafe base64 decode with padding
+payload += "=" * (-len(payload) % 4)
+claims = json.loads(base64.urlsafe_b64decode(payload).decode())
+print(json.dumps({k: claims.get(k) for k in [
+  "iss","aud","sub","repository","ref","workflow_ref","actor","sha"
+]}, indent=2))
+PY
