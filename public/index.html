@@ -19,7 +19,7 @@
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
 
     /* KPI sub-rows (match table body size/feel) */
-    .kpi-rows{ font-size:14px; line-height:1.35; }
+    .kpi-rows{ font-size:16px; line-height:1.35; }
     .kpi-rows div{ margin-top:2px; }
     .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
 
@@ -509,8 +509,8 @@
         const kValue = document.getElementById('kpi-right-value');
         const kSub   = document.getElementById('kpi-right-sub');
       
-        kTitle.textContent = 'Capital Calls';
-        kValue.textContent = money(capitalCalls);
+        kTitle.textContent = 'Capital Calls';         // keep header as-is
+        kValue.textContent = money(capitalCalls);     // keep big number
         kSub.innerHTML = `
           <div class="kpi-rows">
             <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
@@ -649,20 +649,25 @@
       document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
       document.getElementById('linkInterests').classList.toggle('active', isInterests); // ADD
-    
+
+      // --- OPTIONAL: clear KPI value/sub to avoid stale UI while loading
+      const kVal = document.getElementById('kpi-right-value');
+      const kSub = document.getElementById('kpi-right-sub');
+      if (kVal) kVal.textContent = '—';
+      if (kSub) kSub.innerHTML = '';
+  
       // KPI label defaults per tab
       if (isDocs) {
         document.getElementById('kpi-right-title').textContent = 'Documents';
         loadDocuments();
       } else if (isInterests) {
-        document.getElementById('kpi-right-title').textContent = 'Interests Total';
-        loadInterests(); // ADD
+        document.getElementById('kpi-right-title').textContent = 'Capital Calls'; // match KPI on Interests tab
+        loadInterests();
       } else {
         document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
         loadTransactions();
-        }
+      }
 
-    }
 
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
@@ -852,6 +857,7 @@
   </script>
 </body>
 </html>
+
 
 
 
