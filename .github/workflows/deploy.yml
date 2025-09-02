@@ -1,45 +1,51 @@
-name: Deploy to Firebase Hosting
+name: Deploy to Firebase Hosting (WIF)
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  id-token: write      # <-- required for OIDC
-  contents: read
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      PROJECT_ID: gp-member-portal
-      HOSTING_TARGET: allegisgp
+    permissions:
+      contents: read
+      id-token: write   # required for GitHub → Google OIDC
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      # Exchange GitHub OIDC for Google credentials (Workload Identity Federation)
-      - name: Authenticate to Google Cloud (OIDC)
+      - id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/468716163323/locations/global/workloadIdentityPools/gp-portal-pool/providers/github
           service_account: github-deployer@gp-member-portal.iam.gserviceaccount.com
           create_credentials_file: true
-          export_environment_variables: true   # sets GOOGLE_APPLICATION_CREDENTIALS for firebase-tools
+          export_environment_variables: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Firebase CLI
         run: npm i -g firebase-tools@latest
 
-      - name: Deploy to Firebase Hosting
+      # Optional sanity: confirm ADC is wired up to the SA
+      - name: Who am I?
         env:
-          CI: true
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.auth.outputs.credentials_file_path }}
         run: |
+          gcloud auth list
+          gcloud config list --format 'value(core.project)'
           firebase --version
+
+      - name: Deploy to Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
           firebase deploy \
-            --project "$PROJECT_ID" \
-            --only "hosting:${HOSTING_TARGET}" \
-            --non-interactive --debug
+            --only hosting:allegisgp \
+            --project gp-member-portal \
+            --non-interactive
