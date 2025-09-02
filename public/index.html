@@ -110,6 +110,7 @@
       <nav class="nav">
         <a href="#/transactions" id="linkTx" class="active">Transactions</a>
         <a href="#/documents"   id="linkDocs">Documents</a>
+        <a href="#/interests"  id="linkInterests">Interests</a>
       </nav>
     </aside>
 
@@ -207,7 +208,21 @@
             </table>
           </div>
         </div>
-
+        <!-- === ADD: Member Interests (card) === -->
+        <div id="card-interests" class="card hidden" style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:16px;">Your Fund Interests</h3>
+            <div id="interests-updated" class="sub"></div>
+          </div>
+        
+          <div id="interests-list" style="margin-top:8px; display:flex; flex-direction:column; gap:12px;">
+            <!-- fund blocks rendered here -->
+          </div>
+        
+          <div id="interests-totals" style="margin-top:12px; border-top:1px solid var(--border); padding-top:10px;">
+            <!-- totals rendered here -->
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -388,6 +403,74 @@
       document.getElementById('kpi-right-sub').textContent   = 'Available files';
       document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
+    // === ADD: Member Interests (render) ===
+    function renderInterests(payload){
+      const listEl   = document.getElementById('interests-list');
+      const totalsEl = document.getElementById('interests-totals');
+      const updEl    = document.getElementById('interests-updated');
+    
+      listEl.innerHTML = '';
+      totalsEl.innerHTML = '';
+      updEl.textContent = '';
+    
+      if (!payload || !Array.isArray(payload.funds)) {
+        setStatus('Unable to load interests.');
+        return;
+      }
+      setStatus('');
+    
+      // Per-fund blocks
+      if (!payload.funds.length) {
+        listEl.innerHTML = `<div class="sub">No positions found for your account.</div>`;
+      } else {
+        listEl.innerHTML = payload.funds.map(f => {
+          return `
+            <div class="card" style="padding:12px;">
+              <div style="font-weight:700; color:var(--navy); margin-bottom:4px;">[${safe(f.fund)}]</div>
+              <div style="padding-left:10px; line-height:1.6;">
+                <div>Start: ${safe(f.startDate || '—')}</div>
+                <div>Size: ${safe(f.fundSize || '—')}</div>
+                <div>GP Commit: ${safe(f.gpCommit || '—')}</div>
+                <div style="height:8px;"></div>
+                <div>Your interest in GP: ${safe(f.interestPctDisplay || '0%')}</div>
+                <div>Contributions (Employee): $${money(f.employeeContrib || 0)}</div>
+                <div>Contributions (Employer): $${money(f.employerContrib || 0)}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    
+      // Totals
+      const t = payload.totals || { employee:0, employer:0, grand:0 };
+      totalsEl.innerHTML = `
+        <div style="font-weight:700; color:var(--navy); margin-bottom:4px;">[Total Across All Funds]</div>
+        <div style="padding-left:10px; line-height:1.6;">
+          <div>Contributions (Employee): $${money(t.employee || 0)}</div>
+          <div>Contributions (Employer): $${money(t.employer || 0)}</div>
+          <div><strong>Grand Total: $${money(t.grand || 0)}</strong></div>
+        </div>
+      `;
+    
+      // KPI right box → show Grand Total for Interests view
+      document.getElementById('kpi-right-title').textContent = 'Interests Total';
+      document.getElementById('kpi-right-value').textContent = money((t.grand || 0));
+      document.getElementById('kpi-right-sub').textContent   = `${payload.funds?.length || 0} fund(s)`;
+    
+      updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+    
+      // Signed-as line
+      const signedAs = document.getElementById('signedAs');
+      if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
+        signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
+      }
+    }
+    
+    async function loadInterests(){
+      const data = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
+      renderInterests(data);
+    }
+    // ========================================
 
     // ===== data loaders =====
     async function loadTransactions(){ const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders()); renderTransactions(data); }
@@ -406,31 +489,54 @@
     // ===== router =====
     function setRoute(hash){
       const isDocs = (hash === '#/documents');
-      document.getElementById('card-tx').classList.toggle('hidden', isDocs);
+      const isInterests = (hash === '#/interests');  // ADD
+    
+      // show/hide cards
+      document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests);
       document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
-      document.getElementById('linkTx').classList.toggle('active', !isDocs);
+      document.getElementById('card-interests').classList.toggle('hidden', !isInterests); // ADD
+    
+      // sidebar
+      document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
-      document.getElementById('kpi-right-title').textContent = isDocs ? 'Documents' : 'Current Balance';
-      if (isDocs) loadDocuments(); else loadTransactions();
+      document.getElementById('linkInterests').classList.toggle('active', isInterests); // ADD
+    
+      // KPI label defaults per tab
+      if (isDocs) {
+        document.getElementById('kpi-right-title').textContent = 'Documents';
+        loadDocuments();
+      } else if (isInterests) {
+        document.getElementById('kpi-right-title').textContent = 'Interests Total';
+        loadInterests(); // ADD
+      } else {
+        document.getElementById('kpi-right-title').textContent = 'Current Balance';
+        loadTransactions();
+      }
     }
+
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
     async function reloadActiveTab(){
       const isDocs = (location.hash === '#/documents');
+      const isInterests = (location.hash === '#/interests'); // ADD
       const impState = document.getElementById('imp-state');
     
       try{
-        if (isDocs) await loadDocuments(); else await loadTransactions();
-        setStatus('');                        // clear any previous error
+        if (isDocs)      await loadDocuments();
+        else if (isInterests) await loadInterests();  // ADD
+        else             await loadTransactions();
+    
+        setStatus('');
         if (impState) impState.textContent = (window.__admin?.actAs ? 'Impersonation ON' : 'Impersonation OFF');
       }catch(e){
         console.error(e);
         const msg = (e && e.message) ? e.message : 'Unknown error';
-        setStatus(`Error loading ${isDocs ? 'documents' : 'transactions'}: ${msg}`);
+        setStatus(`Error loading ${isDocs ? 'documents' : (isInterests ? 'interests' : 'transactions')}: ${msg}`);
         if (impState) impState.textContent = `Error: ${msg}`;
-        // One quick retry only for transient cold-starts:
         await new Promise(r => setTimeout(r, 400));
-        if (isDocs) await loadDocuments(); else await loadTransactions();
+        if (isDocs)      await loadDocuments();
+        else if (isInterests) await loadInterests(); // ADD
+        else             await loadTransactions();
       }
     }
 
@@ -592,4 +698,5 @@
   </script>
 </body>
 </html>
+
 
