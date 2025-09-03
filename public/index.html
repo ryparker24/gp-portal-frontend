@@ -256,6 +256,17 @@
       const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
       return isNeg ? -mag : mag;
     }
+    // ===== totals: exclude these entities =====
+    function canonizeEntityName(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+    const EXCLUDED_TOTAL_ENTITIES = new Set([
+      'MediaTech Management V, LLC',
+      'MediaTech Management IV, LLC',
+      'MediaTech Management IV Annex, LLC'
+    ].map(canonizeEntityName));
+    function excludedForTotals(name){
+      return EXCLUDED_TOTAL_ENTITIES.has(canonizeEntityName(name));
+    }
+
     // Show uncaught errors in the status bar and console
     window.addEventListener('error', (e) => {
       console.error(e.error || e.message || e);
@@ -375,18 +386,19 @@
           net: netVal
         };
       });
-    
-      const grandTotal = rows.reduce((a, r) => a + r.net, 0);
+          
+      const includedRows  = rows.filter(r => !excludedForTotals(r.entity));
+      const includedTotal = includedRows.reduce((a, r) => a + r.net, 0);
     
       document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
-      document.getElementById('kpi-right-value').textContent = money(grandTotal);
+      document.getElementById('kpi-right-value').textContent = money(includedTotal);
       document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
     
       document.getElementById('kpi-name').textContent   = memberDisplayName || '—';
       document.getElementById('kpi-email').textContent  = memberEmail || '—';
       document.getElementById('updated').textContent    = 'Updated ' + new Date(data.updated).toLocaleString();
     
-      window.__currentBalance = grandTotal;
+      window.__currentBalance = includedTotal; // ← important for Interests tab
     
       const tb = document.querySelector('#tx tbody');
       const tf = document.querySelector('#tx tfoot');
@@ -439,8 +451,8 @@
       gt.innerHTML = `
         <td></td>
         <td><strong>Grand Total</strong></td>
-        <td class="num"><strong>${money(grandTotal)}</strong></td>
-        <td class="num"><strong>${money(grandTotal)}</strong></td>
+        <td class="num"><strong>${money(includedTotal)}</strong></td>
+        <td class="num"><strong>${money(includedTotal)}</strong></td>
       `;
       tf.appendChild(gt);
     
@@ -590,14 +602,15 @@
 
     // ===== Top-Right "GP Interests" Box helpers =====
     function computeGrandTotalFromTxRows(rows){
-      const normRows = (rows || []).map(r=>{
+      return (rows || []).reduce((sum, r) => {
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
-        return netVal;
-      });
-      return normRows.reduce((a,n)=>a+n,0);
+        const entity = r.EntityName || r.Entity || r.Entity_Name || '';
+        if (excludedForTotals(entity)) return sum;   // skip excluded entities
+        return sum + netVal;
+      }, 0);
     }
-    
+
     async function getCurrentBalance(){
       if (typeof window.__currentBalance === 'number') return window.__currentBalance;
       try{
@@ -842,6 +855,7 @@
   </script>
 </body>
 </html>
+
 
 
 
