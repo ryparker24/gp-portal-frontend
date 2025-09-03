@@ -502,6 +502,15 @@
       addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
       addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
       addRow('Subtotal', f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)), { moneyCells:true, sumTotal:true, bold:true });
+      // New rows fed by API fields on each fund
+      addRow('Distributions', 'distributions', { moneyCells:true, sumTotal:true });
+      addRow(
+        'Adjusted Total',
+        f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0) - Number(f.distributions||0)),
+        { moneyCells:true, sumTotal:true, bold:true }
+      );
+      const fmt = n => n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+      const dist = portalData.distributionsByFund || {};
       setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
       updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
       const signedAs = document.getElementById('signedAs');
@@ -883,6 +892,7 @@
   </script>
 </body>
 </html>
+
 
 
 
