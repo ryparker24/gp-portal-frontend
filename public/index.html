@@ -18,7 +18,7 @@
     * { box-sizing: border-box; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
 
-    /* KPI sub-rows (match table body size/feel) */
+    /* KPI sub-rows (same size as table body) */
     .kpi-rows{ font-size:16px; line-height:1.35; }
     .kpi-rows div{ margin-top:2px; }
     .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
@@ -33,12 +33,12 @@
     }
     .content { padding: 16px 24px 24px 12px; }
     .wrap { max-width:1100px; margin:0; }
-    .sidebar .brand-row { margin-bottom: 44px; }  /* ~4 lines of space */
+    .sidebar .brand-row { margin-bottom: 44px; }
 
-    /* ===== Header: brand row then title row ===== */
+    /* ===== Header ===== */
     .brand-block { margin-bottom: 8px; }
     .brand-row { display:flex; align-items:center; gap:12px; }
-    .brand-row img { height:56px; } /* larger logo */
+    .brand-row img { height:56px; }
     .title-row { display:flex; align-items:flex-start; gap:12px; margin-top:8px; }
     .title { font-size:28px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
@@ -48,7 +48,7 @@
     .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     #status { color:#b00; min-height:16px; }
 
-    /* ===== Impersonation (in topbar) ===== */
+    /* ===== Impersonation ===== */
     .imp { position:relative; }
     .imp-btn {
       background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:6px 10px; cursor:pointer;
@@ -213,6 +213,7 @@
             </table>
           </div>
         </div>
+
         <!-- === GP Interests (table) === -->
         <div id="card-interests" class="card hidden" style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -283,7 +284,6 @@
       const contentType = r.headers.get('content-type') || '';
       const raw = await r.text();
     
-      // Try to parse JSON if declared, otherwise wrap raw text
       let j = null;
       if (contentType.includes('application/json')) {
         try { j = JSON.parse(raw); } catch { /* fall through */ }
@@ -316,16 +316,37 @@
       throw new Error('Session not ready');
     }
 
+    // ===== KPI helper (used by both branches) =====
+    function setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding){
+      const contributionsToDate = capitalCalls - memberBalanceOutstanding;
+
+      const kTitle = document.getElementById('kpi-right-title');
+      const kValue = document.getElementById('kpi-right-value');
+      const kSub   = document.getElementById('kpi-right-sub');
+
+      // Header stays "Capital Calls" on the Interests tab
+      kTitle.textContent = 'Capital Calls';
+      // Keep the large number as-is
+      kValue.textContent = money(capitalCalls);
+
+      // Three uniform rows (2nd row links to Member Outstanding Balance page)
+      kSub.innerHTML = `
+        <div class="kpi-rows">
+          <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
+          <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
+          <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
+        </div>
+      `;
+    }
+
     // ===== render: transactions =====
     function renderTransactions(data){
-      // Basic guards
       if (!data || !Array.isArray(data.tx)) {
         setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
         return;
       }
       setStatus('');
     
-      // Derive display name/email from rows (fallback to signed-in/acting-as)
       function localPickMemberName(rows, fallbackEmail){
         const fields = ['Member_Name','MemberName','Name','Member'];
         for (const f of fields){
@@ -344,7 +365,6 @@
       const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
       const memberEmail       = data.actingAs || data.email || '';
     
-      // Normalize rows and compute net values
       const rows = data.tx.map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
@@ -357,29 +377,23 @@
         };
       });
     
-      // Grand total (Outstanding Balance)
       const grandTotal = rows.reduce((a, r) => a + r.net, 0);
     
-      // Top-right KPI (Transactions tab)
       document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
       document.getElementById('kpi-right-value').textContent = money(grandTotal);
       document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
     
-      // Member info + last updated
       document.getElementById('kpi-name').textContent   = memberDisplayName || '—';
       document.getElementById('kpi-email').textContent  = memberEmail || '—';
       document.getElementById('updated').textContent    = 'Updated ' + new Date(data.updated).toLocaleString();
     
-      // Expose for other tabs (e.g., GP Interests needs this)
       window.__currentBalance = grandTotal;
     
-      // === Render table: group by entity, running balances, subtotals, grand total
       const tb = document.querySelector('#tx tbody');
       const tf = document.querySelector('#tx tfoot');
       tb.innerHTML = '';
       tf.innerHTML = '';
     
-      // Group rows by entity
       const groups = new Map();
       for (const it of rows) {
         if (!groups.has(it.entity)) groups.set(it.entity, []);
@@ -391,13 +405,11 @@
       for (const name of entityNames) {
         const list = groups.get(name).sort((a,b)=> a.date - b.date);
     
-        // Entity header row
         const eh = document.createElement('tr');
         eh.className = 'entity-hdr';
         eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
         tb.appendChild(eh);
     
-        // Running balance within the entity
         let running = 0;
         for (const r of list) {
           running += r.net;
@@ -411,7 +423,6 @@
           tb.appendChild(tr);
         }
     
-        // Entity subtotal
         const sub = list.reduce((a, x) => a + x.net, 0);
         const st = document.createElement('tr');
         st.className = 'subtotal';
@@ -424,7 +435,6 @@
         tb.appendChild(st);
       }
     
-      // Grand total footer
       const gt = document.createElement('tr');
       gt.className = 'grand';
       gt.innerHTML = `
@@ -435,7 +445,6 @@
       `;
       tf.appendChild(gt);
     
-      // Signed-as line
       const signedAs = document.getElementById('signedAs');
       if (signedAs) {
         signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
@@ -478,7 +487,8 @@
       document.getElementById('kpi-right-sub').textContent   = 'Available files';
       document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
     }
-    // ===== render: table =====
+
+    // ===== render: interests =====
     function renderInterests(payload){
       const table = document.getElementById('interests-table');
       const thead = table.querySelector('thead');
@@ -499,41 +509,19 @@
         (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0
       );
     
-      // ---- KPI helpers (uses balance attached by loadInterests via getCurrentBalance)
+      // KPI helpers
       const memberBalanceOutstanding = Number(payload.currentBalance || 0);
       const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
-      const contributionsToDate = capitalCalls - memberBalanceOutstanding;
     
-      // ---- No-positions case
+      // No-positions branch
       if (!funds.length){
         tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
-      
-        // KPI values when there are no funds
-        const memberBalanceOutstanding = Number(payload.currentBalance || 0);
-        const capitalCalls = 0;
-        const contributionsToDate = capitalCalls - memberBalanceOutstanding;
-      
-      // ---- KPI (3 rows)
-      const kTitle = document.getElementById('kpi-right-title');
-      const kValue = document.getElementById('kpi-right-value');
-      const kSub   = document.getElementById('kpi-right-sub');
-      
-      kTitle.textContent = 'Capital Calls';       // keep header
-      kValue.textContent = money(capitalCalls);   // keep big number
-      
-      kSub.innerHTML = `
-        <div class="kpi-rows">
-          <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
-          <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
-          <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
-        </div>
-      `;
-      
+        setCapitalCallsKpi(0, memberBalanceOutstanding);
         updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
         return;
       }
     
-      // ---- Header row
+      // Header row
       thead.innerHTML = `
         <tr>
           <th></th>
@@ -542,7 +530,7 @@
         </tr>
       `;
     
-      // ---- Row builder
+      // Row builder
       function addRow(label, field, { moneyCells=false, money0Cells=false, sumTotal=false, bold=false } = {}){
         const values = funds.map(f => {
           const vRaw = (typeof field === 'function') ? field(f) : (f[field]);
@@ -570,7 +558,7 @@
         tbody.appendChild(tr);
       }
     
-      // ---- Static + contribution rows
+      // Static + contribution rows
       addRow('Start',               f => f.startDate);
       addRow('Fund Size',           f => parseMoney(f.fundSize), { money0Cells:true });
       addRow('GP Commitment',       f => parseMoney(f.gpCommit), { money0Cells:true });
@@ -581,25 +569,17 @@
              f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)),
              { moneyCells:true, sumTotal:true, bold:true });
     
-      // ---- KPI (3 rows)
-      const kTitle = document.getElementById('kpi-right-title');
-      const kValue = document.getElementById('kpi-right-value');
-      const kSub   = document.getElementById('kpi-right-sub');
+      // KPI (3 rows) for funds-present
+      setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
     
-      kTitle.textContent = 'Capital Calls';
-      kValue.textContent = money(capitalCalls);
-      kSub.innerHTML = `
-        <div>(less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</div>
-        <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
-      `;
-    
-      // ---- Footer + signed-as
+      // Footer + signed-as
       updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
       const signedAs = document.getElementById('signedAs');
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
     }
+
     async function loadInterests(){
       const [data, currBal] = await Promise.all([
         apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()),
@@ -609,9 +589,8 @@
       renderInterests(data);
     }
 
-    // =======Top-Right "GP Interests" Box======
+    // ===== Top-Right "GP Interests" Box helpers =====
     function computeGrandTotalFromTxRows(rows){
-      // rows is data.tx
       const normRows = (rows || []).map(r=>{
         const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
         const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
@@ -631,6 +610,7 @@
         return 0;
       }
     }
+
     // ===== data loaders =====
     async function loadTransactions(){ const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders()); renderTransactions(data); }
     async function loadDocuments(){ const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders()); renderDocuments(docs || []); }
@@ -646,50 +626,49 @@
     document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
     // ===== router =====
-     function setRoute(hash){
-    const isDocs = (hash === '#/documents');
-    const isInterests = (hash === '#/interests');
-  
-    // show/hide cards
-    document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests);
-    document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
-    document.getElementById('card-interests').classList.toggle('hidden', !isInterests);
-  
-    // sidebar
-    document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
-    document.getElementById('linkDocs').classList.toggle('active', isDocs);
-    document.getElementById('linkInterests').classList.toggle('active', isInterests);
-  
-    // OPTIONAL: clear KPI value/sub to avoid stale UI while loading
-    const kVal = document.getElementById('kpi-right-value');
-    const kSub = document.getElementById('kpi-right-sub');
-    if (kVal) kVal.textContent = '—';
-    if (kSub) kSub.innerHTML = '';
-  
-    // KPI label defaults per tab
-    if (isDocs) {
-      document.getElementById('kpi-right-title').textContent = 'Documents';
-      loadDocuments();
-    } else if (isInterests) {
-      document.getElementById('kpi-right-title').textContent = 'Capital Calls';
-      loadInterests();
-    } else {
-      document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
-      loadTransactions();
+    function setRoute(hash){
+      const isDocs = (hash === '#/documents');
+      const isInterests = (hash === '#/interests');
+    
+      // show/hide cards
+      document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests);
+      document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
+      document.getElementById('card-interests').classList.toggle('hidden', !isInterests);
+    
+      // sidebar
+      document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
+      document.getElementById('linkDocs').classList.toggle('active', isDocs);
+      document.getElementById('linkInterests').classList.toggle('active', isInterests);
+    
+      // OPTIONAL: clear KPI value/sub to avoid stale UI while loading
+      const kVal = document.getElementById('kpi-right-value');
+      const kSub = document.getElementById('kpi-right-sub');
+      if (kVal) kVal.textContent = '—';
+      if (kSub) kSub.innerHTML = '';
+    
+      // KPI label defaults per tab
+      if (isDocs) {
+        document.getElementById('kpi-right-title').textContent = 'Documents';
+        loadDocuments();
+      } else if (isInterests) {
+        document.getElementById('kpi-right-title').textContent = 'Capital Calls';
+        loadInterests();
+      } else {
+        document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
+        loadTransactions();
+      }
     }
-  }
-
 
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
     async function reloadActiveTab(){
       const isDocs = (location.hash === '#/documents');
-      const isInterests = (location.hash === '#/interests'); // ADD
+      const isInterests = (location.hash === '#/interests');
       const impState = document.getElementById('imp-state');
     
       try{
         if (isDocs)      await loadDocuments();
-        else if (isInterests) await loadInterests();  // ADD
+        else if (isInterests) await loadInterests();
         else             await loadTransactions();
     
         setStatus('');
@@ -701,7 +680,7 @@
         if (impState) impState.textContent = `Error: ${msg}`;
         await new Promise(r => setTimeout(r, 400));
         if (isDocs)      await loadDocuments();
-        else if (isInterests) await loadInterests(); // ADD
+        else if (isInterests) await loadInterests();
         else             await loadTransactions();
       }
     }
@@ -721,7 +700,7 @@
       google.accounts.id.prompt();
     }
 
-    // ===== after sign-in → create server session, then wait, then load active tab =====
+    // ===== after sign-in =====
     async function afterSignIn(credential){
       try{
         const r = await fetch('/api/session', {
@@ -742,12 +721,11 @@
         if (!location.hash) location.replace('#/transactions');
         await reloadActiveTab();
 
-        // Optional: warm both tabs once
-       // Optional: warm tabs once (now includes Interests)
+        // Warm tabs once (optional)
         Promise.resolve().then(()=>{
           loadDocuments().catch(()=>{});
           loadTransactions().catch(()=>{});
-          loadInterests().catch(()=>{});   // ← add this line
+          loadInterests().catch(()=>{});
         });
       }catch(e){ console.error(e); setStatus('Sign-in failed. Please try again.'); }
     }
@@ -763,7 +741,6 @@
       const iReason=document.getElementById('imp-reason');
       const iToken =document.getElementById('imp-token');
 
-      // open/close panel
       toggle.addEventListener('click', ()=> panel.classList.toggle('hidden'));
       document.addEventListener('click', (e)=>{
         if (!panel.classList.contains('hidden')){
@@ -778,7 +755,6 @@
           signedAs.textContent = `Acting as ${window.__admin.actAs} (admin: ${document.getElementById('kpi-email').textContent || 'you'})`;
           state.textContent = 'Impersonation ON';
         } else {
-          // reset to /api/me view
           try{
             const r = await me();
             if (r.ok){
@@ -794,43 +770,42 @@
         }
       }
 
-    startB.addEventListener('click', async ()=>{
-      const email  = (iEmail.value||'').trim().toLowerCase();
-      const token  = (iToken.value||'').trim();
-      const reason = (iReason.value||'').trim();
-    
-      if (!email || !token){
-        state.textContent = 'Enter act-as email and admin token.';
-        return;
-      }
-      // Very light email sanity check
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
-        state.textContent = 'Invalid email format.';
-        return;
-      }
-    
-      window.__admin.actAs = email;
-      window.__admin.token = token;
-      window.__admin.reason= reason;
-    
-      // Immediate UI feedback
-      const signedAs = document.getElementById('signedAs');
-      signedAs.textContent = `Acting as ${email} (admin session)`;
-      state.textContent = 'Impersonation ON';
-    
-      panel.classList.add('hidden');
-    
-      try{
-        await reloadActiveTab();            // Will surface server error if 401/403/etc.
-      }catch(e){
-        // reloadActiveTab already surfaced error; also keep panel closed
-      }
-    });
+      startB.addEventListener('click', async ()=>{
+        const email  = (iEmail.value||'').trim().toLowerCase();
+        const token  = (iToken.value||'').trim();
+        const reason = (iReason.value||'').trim();
+      
+        if (!email || !token){
+          state.textContent = 'Enter act-as email and admin token.';
+          return;
+        }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+          state.textContent = 'Invalid email format.';
+          return;
+        }
+      
+        window.__admin.actAs = email;
+        window.__admin.token = token;
+        window.__admin.reason= reason;
+      
+        const signedAs = document.getElementById('signedAs');
+        signedAs.textContent = `Acting as ${email} (admin session)`;
+        state.textContent = 'Impersonation ON';
+      
+        panel.classList.add('hidden');
+      
+        try{
+          await reloadActiveTab();
+        }catch(e){
+          /* error surfaced by reloadActiveTab */
+        }
+      });
+
       stopB.addEventListener('click', async ()=>{
         window.__admin = { actAs:null, token:null, reason:'' };
         await applyImpersonationUI();
         panel.classList.add('hidden');
-        await reloadActiveTab(); // revert back to self on the active tab
+        await reloadActiveTab();
       });
     })();
 
@@ -868,17 +843,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
