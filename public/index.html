@@ -642,7 +642,7 @@
       // OPTIONAL: clear KPI value/sub to avoid stale UI while loading
       const kVal = document.getElementById('kpi-right-value');
       const kSub = document.getElementById('kpi-right-sub');
-      if (kVal) kVal.textContent = '—';
+      if (kVal) kVal.textContent = '';
       if (kSub) kSub.innerHTML = '';
     
       // KPI label defaults per tab
@@ -842,5 +842,6 @@
   </script>
 </body>
 </html>
+
 
 
