@@ -154,20 +154,19 @@
   }
 
   // ==== GIS (popup; no FedCM) ====
-  function initGis(){
-    if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis, 50); return; }
-    google.accounts.id.initialize({
-      client_id: WEB_CLIENT_ID,
-      callback: ({ credential }) => afterSignIn(credential),
-      ux_mode: 'popup',
-      auto_select: false,
-      use_fedcm_for_prompt: false
-    });
-    const btnHost = document.getElementById('g_id_signin');
-    if (btnHost) {
-      google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large', type:'standard', text:'signin_with' });
-    }
-  }
+function initGis(){
+  if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
+  google.accounts.id.initialize({
+    client_id: WEB_CLIENT_ID,
+    callback: ({credential}) => afterSignIn(credential),
+    auto_select: true,
+    use_fedcm_for_prompt: true,
+    cancel_on_tap_outside: false
+  });
+  const btnHost = document.getElementById('g_id_signin');
+  if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
+  google.accounts.id.prompt();
+}
 
   async function afterSignIn(credential){
     try{
@@ -336,3 +335,4 @@
   </script>
 </body>
 </html>
+
