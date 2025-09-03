@@ -73,18 +73,25 @@
     .hidden { display:none !important; }
 
     /* ===== Wire cards ===== */
-    .bank-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px; }
+    .bank-grid{
+      display:grid;
+      grid-template-columns: 1fr;   /* one column always */
+      gap:12px;
+      margin-top:8px;
+      max-width: 760px;
+    }
     .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
     .bank-card h4 { margin:0 0 8px 0; font-size:15px; color:var(--navy); }
     
     /* Compact inline layout: "Field: Value" */
+    .rows-wrap{ display:grid; row-gap:6px; }
     .rows{
-      display: grid;
-      grid-template-columns: max-content 1fr auto; /* label | value | buttons */
-      column-gap: 8px;
-      row-gap: 4px;
-      align-items: start;       /* keep tops aligned */
-      margin-top: 4px;          /* tight vertical rhythm */
+      display:grid;
+      grid-template-columns: max-content 1fr;  /* label | value */
+      column-gap:8px;
+      row-gap:2px;
+      align-items:start;
+      margin-top:4px;
     }
     
     .label{
@@ -96,7 +103,6 @@
       content: ":";             /* renders "Field:" automatically */
       margin-left: 2px;
     }
-    
     .value{
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 13px;
@@ -104,13 +110,12 @@
       overflow-wrap: anywhere;  /* wrap long values (e.g., addresses) */
       word-break: break-word;
     }
-    
     .buttons{
-      display: flex;
-      gap: 6px;
-      align-self: center;       /* centers buttons on the row */
+      grid-column: 1 / -1;   /* buttons drop below, full width */
+      display:flex;
+      gap:6px;
+      margin-top:4px;
     }
-    
     .btn{
       padding: 4px 8px;
       font-size: 12px;
@@ -613,9 +618,9 @@
           card.className = 'bank-card';
           card.innerHTML = `<h4>${safe(title)}</h4>`;
     
-          const wrap = document.createElement('div');
-          wrap.className = 'rows';
-    
+      const wrap = document.createElement('div');
+      wrap.className = 'rows-wrap';
+
           // NEW headers (always show these if present)
           wrap.appendChild(mkRow('Entity Legal Name',   r['Entity Legal Name']));
           wrap.appendChild(mkRow('Fund Short Name',     r['Fund Short Name']));
@@ -885,6 +890,7 @@
   </script>
 </body>
 </html>
+
 
 
 
