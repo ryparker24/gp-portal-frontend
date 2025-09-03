@@ -140,17 +140,26 @@
 
     // ==== GIS (adds session when missing) ====
     function initGis(){
-      if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
+      if(!window.google || !google.accounts || !google.accounts.id){
+        setTimeout(initGis, 50);
+        return;
+      }
       google.accounts.id.initialize({
         client_id: WEB_CLIENT_ID,
-        callback: ({credential}) => afterSignIn(credential),
-        auto_select: true,
-        use_fedcm_for_prompt: true,
-        cancel_on_tap_outside: false
+        callback: ({ credential }) => afterSignIn(credential),
+        ux_mode: 'popup',              // <-- popup instead of FedCM
+        auto_select: false,            // <-- don't auto-prompt
+        use_fedcm_for_prompt: false    // <-- silence FedCM errors
       });
       const btnHost = document.getElementById('g_id_signin');
-      if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
-      google.accounts.id.prompt();
+      if (btnHost) {
+        google.accounts.id.renderButton(btnHost, {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          text: 'signin_with'
+        });
+      }
     }
     async function afterSignIn(credential){
       try{
@@ -297,21 +306,22 @@
     }
 
     // ==== start ====
-    (async function start(){
-      try{
-        // Try existing session (twice in case of immediate refresh)
-        if (await bootWithSession()) return;
-        await sleep(250);
-        if (await bootWithSession()) return;
-
-        // No session -> prompt GIS to create it
-        setStatus('Session not ready');
-        initGis();
-      }catch(e){
-        console.error(e);
-        setStatus('Failed to load wire instructions');
-      }
-    })();
+  (async function start(){
+    try{
+      // try existing cookie (twice in case of immediate refresh)
+      if (await bootWithSession()) return;
+      await new Promise(r => setTimeout(r, 250));
+      if (await bootWithSession()) return;
+  
+      // no cookie -> show the button (popup login)
+      setStatus('Session not ready');
+      initGis();
+    }catch(e){
+      console.error(e);
+      setStatus('Failed to load wire instructions');
+    }
+  })();
   </script>
 </body>
 </html>
+
