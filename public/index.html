@@ -76,7 +76,50 @@
     .bank-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px; }
     .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
     .bank-card h4 { margin:0 0 8px 0; font-size:15px; color:var(--navy); }
-    .rows { display:grid; grid-template-columns: 180px 1fr auto; gap:6px 12px; align-items:center; margin-top:6px; }
+    /* Block formatting for wire rows */
+    .rows{ 
+      display:block; 
+      margin-top:10px; 
+      line-height:1.45; 
+    }
+    .rows + .rows{ margin-top:12px; }  /* space between fields */
+    
+    .label{
+      display:block;
+      font-size:12px;
+      color:#666;
+      margin-bottom:2px;   /* gap between label and value */
+    }
+    
+    .value{
+      display:block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:13px;
+      word-wrap:break-word;
+      overflow-wrap:anywhere;   /* prevent overflow */
+    }
+    
+    .buttons{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:6px;           /* keep buttons off the value line */
+    }
+    /* Line-height sanity so text doesn't overlap */
+    html, body { line-height: 1.4; }
+    .value { line-height: 1.45; }            /* monospace rows */
+    .label { line-height: 1.2; }             /* tighter for small labels */
+    .bank-card h4 { line-height: 1.2; }      /* card titles */
+    .wire-value-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .wire-value-row span {
+      flex: 1; /* keeps text left-aligned */
+    }
+
     .label { color:#666; font-size:12px; }
     .value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; }
     .buttons { display:flex; gap:6px; }
@@ -848,4 +891,5 @@
   </script>
 </body>
 </html>
+
 
