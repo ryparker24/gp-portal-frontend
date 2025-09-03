@@ -699,19 +699,29 @@
     }
 
     // ===== GIS init =====
-    function initGis(){
-      if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
-      google.accounts.id.initialize({
-        client_id: WEB_CLIENT_ID,
-        callback: ({credential}) => afterSignIn(credential),
-        auto_select: true,
-        use_fedcm_for_prompt: true,
-        cancel_on_tap_outside: false
-      });
-      const btnHost = document.getElementById('g_id_signin');
-      if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
-      google.accounts.id.prompt();
-    }
+function initGis(){
+  if (!window.google || !google.accounts || !google.accounts.id){
+    setTimeout(initGis, 50);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: WEB_CLIENT_ID,
+    callback: ({credential}) => afterSignIn(credential),
+    ux_mode: 'popup',            // use popup
+    auto_select: false,          // no auto-prompt
+    use_fedcm_for_prompt: false  // silence FedCM errors
+  });
+
+  const btnHost = document.getElementById('g_id_signin');
+  if (btnHost) {
+    google.accounts.id.renderButton(btnHost, {
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with'
+    });
+  }
+  // IMPORTANT: do NOT call google.accounts.id.prompt() here.
+}
 
     // ===== after sign-in =====
     async function afterSignIn(credential){
@@ -856,6 +866,7 @@
   </script>
 </body>
 </html>
+
 
 
 
