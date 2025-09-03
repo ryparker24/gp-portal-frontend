@@ -19,7 +19,7 @@
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
 
     /* KPI sub-rows (same size as table body) */
-    .kpi-rows{ font-size:16px; line-height:1.35; }
+    .kpi-rows{ font-size:16px; line-height:1.75; }
     .kpi-rows div{ margin-top:2px; }
     .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
 
@@ -326,8 +326,6 @@
 
       // Header stays "Capital Calls" on the Interests tab
       kTitle.textContent = 'Capital Calls';
-      // Keep the large number as-is
-      kValue.textContent = money(capitalCalls);
 
       // Three uniform rows (2nd row links to Member Outstanding Balance page)
       kSub.innerHTML = `
@@ -843,3 +841,4 @@
   </script>
 </body>
 </html>
+
