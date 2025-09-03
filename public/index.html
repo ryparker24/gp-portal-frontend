@@ -513,20 +513,21 @@
         const capitalCalls = 0;
         const contributionsToDate = capitalCalls - memberBalanceOutstanding;
       
-        // ===== KPI (3 rows) =====
-        const kTitle = document.getElementById('kpi-right-title');
-        const kValue = document.getElementById('kpi-right-value');
-        const kSub   = document.getElementById('kpi-right-sub');
+      // ---- KPI (3 rows)
+      const kTitle = document.getElementById('kpi-right-title');
+      const kValue = document.getElementById('kpi-right-value');
+      const kSub   = document.getElementById('kpi-right-sub');
       
-        kTitle.textContent = 'Capital Calls';         // keep header as-is
-        kValue.textContent = money(capitalCalls);     // keep big number
-        kSub.innerHTML = `
-          <div class="kpi-rows">
-            <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
-            <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
-            <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
-          </div>
-        `;
+      kTitle.textContent = 'Capital Calls';       // keep header
+      kValue.textContent = money(capitalCalls);   // keep big number
+      
+      kSub.innerHTML = `
+        <div class="kpi-rows">
+          <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
+          <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
+          <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
+        </div>
+      `;
       
         updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
         return;
@@ -867,6 +868,7 @@
   </script>
 </body>
 </html>
+
 
 
 
