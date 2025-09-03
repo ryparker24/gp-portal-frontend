@@ -555,8 +555,6 @@
       const render = ()=> v.textContent = sensitive ? masked(raw, revealed) : (raw || '');
       render();
       if (raw && String(raw).trim()){
-        const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy';
-        copyBtn.addEventListener('click', ()=> copyText(raw)); btns.appendChild(copyBtn);
         if (sensitive){
           const tog = document.createElement('button'); tog.className='btn'; tog.textContent='Reveal';
           tog.addEventListener('click', ()=>{ revealed = !revealed; tog.textContent = revealed ? 'Hide' : 'Reveal'; render(); });
@@ -891,5 +889,6 @@
   </script>
 </body>
 </html>
+
 
 
