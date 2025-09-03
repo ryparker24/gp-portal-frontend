@@ -529,37 +529,81 @@
       const { wires, updated } = await apiPost('/api/list-wires', { ...adminBody() }, adminHeaders());
       return { wires: Array.isArray(wires) ? wires : [], updated };
     }
-    function renderWireCards(wires, memberFunds){
-      const host = document.getElementById('wire-bankwrap'); host.innerHTML = '';
-      const byFund = new Map(); for (const f of memberFunds) byFund.set(norm(f), true);
-      const rows = wires.filter(r=>{
-        const shortName = norm(r['Entity Short Name'] || '');
+    function renderWireCards(wires, memberFunds, userEmail){
+      const host = document.getElementById('wire-bankwrap');
+      host.innerHTML = '';
+    
+      // normalize helpers
+      const byFund = new Map();
+      for (const f of memberFunds) byFund.set(norm(f), true);
+      const emailKey = norm(userEmail || '');
+    
+      // Filter logic:
+      // - If Member_Email exists on the row, it must match the signed-in/acting email.
+      // - Fund match accepts either Fund Short Name (new) OR Entity Legal Name (fallback)
+      const rows = (wires || []).filter(r => {
+        const rowEmail = norm(r['Member_Email'] || '');
+        const emailOk  = !rowEmail || (rowEmail === emailKey);
+    
+        const shortName = norm(r['Fund Short Name'] || '');
         const legalName = norm(r['Entity Legal Name'] || '');
-        return byFund.has(shortName) || byFund.has(legalName);
+        const fundOk = byFund.size === 0
+          ? true
+          : byFund.has(shortName) || byFund.has(legalName);
+    
+        return emailOk && fundOk;
       });
+    
       if (!rows.length){
-        const empty = document.createElement('div'); empty.className = 'sub'; empty.textContent = 'No wire instructions are available for your current holdings.'; host.appendChild(empty); return;
+        const empty = document.createElement('div');
+        empty.className = 'sub';
+        empty.textContent = 'No wire instructions are available for your current holdings.';
+        host.appendChild(empty);
+        return;
       }
+    
+      // Group by a friendly title: prefer Fund Short Name, then Entity Legal Name
       const groups = new Map();
-      for (const r of rows){ const key = r['Entity Short Name'] || r['Entity Legal Name'] || 'Entity'; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(r); }
-      for (const [entity, list] of groups){
+      for (const r of rows){
+        const key = r['Fund Short Name'] || r['Entity Legal Name'] || 'Entity';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      }
+    
+      for (const [title, list] of groups){
         for (const r of list){
-          const card = document.createElement('div'); card.className='bank-card'; card.innerHTML = `<h4>${safe(entity)}</h4>`;
-          const wrap = document.createElement('div'); wrap.className='rows';
-          wrap.appendChild(mkRow('Bank Name', r['Bank Name']));
-          wrap.appendChild(mkRow('Bank Address', r['Bank Address']));
-          wrap.appendChild(mkRow('Account Name', r['Entity Legal Name']));
-          wrap.appendChild(mkRow('Account Address', r['Account Address']));
-          wrap.appendChild(mkRow('Account Number', r['Account Number'], true));
-          wrap.appendChild(mkRow('Routing Number (WIRE)', r['Routing Number (WIRE)'], true));
-          wrap.appendChild(mkRow('Routing Number (ACH)', r['Routing Number (ACH)'], true));
-          wrap.appendChild(mkRow('SWIFT (international)', r['SWIFT (international)']));
+          const card = document.createElement('div');
+          card.className = 'bank-card';
+          card.innerHTML = `<h4>${safe(title)}</h4>`;
+    
+          const wrap = document.createElement('div');
+          wrap.className = 'rows';
+    
+          // NEW headers (always show these if present)
+          wrap.appendChild(mkRow('Entity Legal Name',   r['Entity Legal Name']));
+          wrap.appendChild(mkRow('Fund Short Name',     r['Fund Short Name']));
+          if (r['Interest'] != null && String(r['Interest']).trim() !== '') {
+            wrap.appendChild(mkRow('Interest', r['Interest']));
+          }
+    
+          // Existing bank detail fields (kept for backward compatibility)
+          wrap.appendChild(mkRow('Bank Name',                    r['Bank Name']));
+          wrap.appendChild(mkRow('Bank Address',                 r['Bank Address']));
+          wrap.appendChild(mkRow('Account Name',                 r['Entity Legal Name'] || r['Account Name']));
+          wrap.appendChild(mkRow('Account Address',              r['Account Address']));
+          wrap.appendChild(mkRow('Account Number',               r['Account Number'], true));
+          wrap.appendChild(mkRow('Routing Number (WIRE)',        r['Routing Number (WIRE)'], true));
+          wrap.appendChild(mkRow('Routing Number (ACH)',         r['Routing Number (ACH)'], true));
+          wrap.appendChild(mkRow('SWIFT (international)',        r['SWIFT (international)']));
           wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
           wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
-          card.appendChild(wrap); host.appendChild(card);
+    
+          card.appendChild(wrap);
+          host.appendChild(card);
         }
       }
     }
+
     async function loadWire(){
       setStatus('Loading…');
       const [{ funds, email, actingAs, updated: upd1 }, { wires, updated: upd2 }] = await Promise.all([
@@ -572,7 +616,7 @@
       document.getElementById('kpi-right-title').textContent = 'Wire Scope';
       document.getElementById('kpi-right-value').textContent = memberFunds.length ? `${memberFunds.length}` : '0';
       document.getElementById('kpi-right-sub').textContent   = memberFunds.length ? 'Entities with interest > 0' : 'No active GP Interests found';
-      renderWireCards(wires || [], memberFunds);
+      renderWireCards(wires || [], memberFunds, actingAs || email);
       document.getElementById('wire-updated').textContent = 'Loaded ' + new Date(upd2 || upd1 || Date.now()).toLocaleString();
       if (actingAs && actingAs !== email){ document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${email})`; }
       setStatus('');
@@ -804,3 +848,4 @@
   </script>
 </body>
 </html>
+
