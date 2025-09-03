@@ -42,15 +42,12 @@
     .bank-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
     .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
     .bank-card h4 { margin:0 0 8px 0; font-size:15px; color:var(--navy); }
-    .pill { display:inline-block; font-size:11px; padding:3px 8px; border-radius:999px; background:#eef3ff; color:#2a4b8d; margin-left:6px; }
     .rows { display:grid; grid-template-columns: 180px 1fr auto; gap:6px 12px; align-items:center; margin-top:6px; }
     .label { color:#666; font-size:12px; }
     .value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; }
     .buttons { display:flex; gap:6px; }
     .btn { padding:5px 8px; font-size:12px; border:1px solid #dde3f5; background:#f5f7fb; border-radius:8px; cursor:pointer; }
     .muted { color:#888; }
-    .note { margin-top:10px; font-size:12px; color:#555; }
-    .divider { height:1px; background:#f0f3fb; margin:10px 0; }
     .hidden { display:none !important; }
 
     @media (max-width: 920px){
@@ -60,7 +57,7 @@
     }
   </style>
 
-  <!-- Google Identity Services -->
+  <!-- Google Identity Services loader -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -115,235 +112,213 @@
   </div>
 
   <script>
-(() => {
-  // ==== CONFIG ====
-  const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+    // ==== CONFIG ====
+    const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
 
-  // ==== utils / auth helpers ====
-  const safe = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const sleep = ms => new Promise(r=>setTimeout(r,ms));
-  const norm  = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
-  async function me(){ return fetch('/api/me', { credentials:'include', cache:'no-store' }); }
+    // ==== utils ====
+    const safe  = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const sleep = ms => new Promise(r=>setTimeout(r,ms));
+    const norm  = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
 
-  // optional admin passthrough (safe if unused)
-  window.__admin = { actAs:null, token:null, reason:'' };
-  function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
-  function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
+    // Admin passthrough (optional, consistent with index.html)
+    window.__admin = { actAs:null, token:null, reason:'' };
+    function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
+    function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
 
-  async function apiPost(path, body, extraHeaders){
-    const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
-    const r = await fetch(path, { method:'POST', headers, credentials:'include', cache:'no-store', body: JSON.stringify(body||{}) });
-    const text = await r.text();
-    let j=null; try{ j = JSON.parse(text); }catch{}
-    if(!r.ok || (j && j.error)){ const msg=(j&&(j.error||j.message))||text||`HTTP ${r.status}`; throw new Error(msg.trim()); }
-    return j ?? { ok:true, raw:text };
-  }
+    // Basic fetch helpers
+    async function apiPost(path, body, extraHeaders){
+      const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
+      const r = await fetch(path, { method:'POST', headers, credentials:'include', cache:'no-store', body: JSON.stringify(body||{}) });
+      const txt = await r.text();
+      let j=null; try{ j = JSON.parse(txt); }catch{}
+      if(!r.ok || (j && j.error)){ const msg=(j&&(j.error||j.message))||txt||`HTTP ${r.status}`; throw new Error(msg.trim()); }
+      return j ?? { ok:true, raw:txt };
+    }
+    async function me(){ return fetch('/api/me', { credentials:'include', cache:'no-store' }); }
 
-  // ---- wait until gp_session cookie is usable
-  async function waitForSession(timeoutMs=6000){
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs){
+    // ==== GIS (popup, no FedCM) ====
+    function initGis(){
+      if(!window.google || !google.accounts || !google.accounts.id){
+        setTimeout(initGis, 50);
+        return;
+      }
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: ({ credential }) => afterSignIn(credential),
+        ux_mode: 'popup',
+        auto_select: false,
+        use_fedcm_for_prompt: false
+      });
+      const btnHost = document.getElementById('g_id_signin');
+      if (btnHost) {
+        google.accounts.id.renderButton(btnHost, { theme: 'outline', size: 'large', text: 'signin_with' });
+      }
+      // No prompt() in popup mode
+    }
+
+    async function afterSignIn(credential){
+      try{
+        // create server session cookie
+        const r = await fetch('/api/session', {
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          credentials:'include',
+          cache:'no-store',
+          body: JSON.stringify({ credential })
+        });
+        if(!r.ok) throw new Error('session create failed');
+
+        // Give the browser a beat to persist the Set-Cookie
+        await sleep(150);
+
+        // Try to boot; retry once; then hard fallback to reload
+        if (!(await bootWithSession())) {
+          await sleep(300);
+          if (!(await bootWithSession())) location.reload();
+        }
+      }catch(e){
+        console.error(e);
+        setStatus('Sign-in failed. Please try again.');
+      }
+    }
+
+    // ==== data loaders ====
+    async function loadFundsWithInterest(){
+      const payload = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
+      const funds = (payload.funds||[]).filter(f => (typeof f.interestFrac==='number' ? f.interestFrac : 0) > 0);
+      return { funds, updated: payload.updated, email: payload.email, actingAs: payload.actingAs };
+    }
+    async function loadWireRows(){
+      const { wires, updated } = await apiPost('/api/list-wires', { ...adminBody() }, adminHeaders());
+      return { wires: Array.isArray(wires) ? wires : [], updated };
+    }
+
+    function masked(val, visible=false){
+      const s = String(val||'').replace(/\s/g,'').trim();
+      if (!s) return '';
+      if (visible) return String(val);
+      const last4 = s.slice(-4);
+      return '•'.repeat(Math.max(0, s.length - 4)) + last4;
+    }
+    function copyText(text){
+      navigator.clipboard?.writeText(String(text)).then(()=>{ setStatus('Copied'); setTimeout(()=>setStatus(''),1000); });
+    }
+    function mkRow(label, raw, sensitive=false){
+      const row = document.createElement('div'); row.className='rows';
+      const l = document.createElement('div'); l.className='label'; l.textContent = label;
+      const v = document.createElement('div'); v.className='value';
+      const btns = document.createElement('div'); btns.className='buttons';
+      let revealed = false;
+      const render = ()=> v.textContent = sensitive ? masked(raw, revealed) : (raw || '');
+      render();
+      if (raw && String(raw).trim()){
+        const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy';
+        copyBtn.addEventListener('click', ()=> copyText(raw)); btns.appendChild(copyBtn);
+        if (sensitive){
+          const tog = document.createElement('button'); tog.className='btn'; tog.textContent='Reveal';
+          tog.addEventListener('click', ()=>{ revealed = !revealed; tog.textContent = revealed ? 'Hide' : 'Reveal'; render(); });
+          btns.appendChild(tog);
+        }
+      } else {
+        v.innerHTML = '<span class="muted">—</span>';
+      }
+      row.appendChild(l); row.appendChild(v); row.appendChild(btns);
+      return row;
+    }
+
+    function renderBankCards(wires, memberFunds){
+      const host = document.getElementById('bankWrap'); host.innerHTML = '';
+      const byFund = new Map(); for (const f of memberFunds) byFund.set(norm(f), true);
+
+      const rows = wires.filter(r=>{
+        const shortName = norm(r['Entity Short Name'] || '');
+        const legalName = norm(r['Entity Legal Name'] || '');
+        return byFund.has(shortName) || byFund.has(legalName);
+      });
+
+      if (!rows.length){
+        const empty = document.createElement('div');
+        empty.className = 'card';
+        empty.innerHTML = '<div class="sub">No wire instructions are available for your current holdings.</div>';
+        host.appendChild(empty);
+        return;
+      }
+
+      const groups = new Map();
+      for (const r of rows){
+        const key = r['Entity Short Name'] || r['Entity Legal Name'] || 'Entity';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      }
+
+      for (const [entity, list] of groups){
+        for (const r of list){
+          const card = document.createElement('div'); card.className='bank-card';
+          card.innerHTML = `<h4>${safe(entity)}</h4>`;
+
+          const wrap = document.createElement('div'); wrap.className='rows';
+          wrap.appendChild(mkRow('Bank Name', r['Bank Name']));
+          wrap.appendChild(mkRow('Bank Address', r['Bank Address']));
+          wrap.appendChild(mkRow('Account Name', r['Entity Legal Name']));
+          wrap.appendChild(mkRow('Account Address', r['Account Address']));
+          wrap.appendChild(mkRow('Account Number', r['Account Number'], true));
+          wrap.appendChild(mkRow('Routing Number (WIRE)', r['Routing Number (WIRE)'], true));
+          wrap.appendChild(mkRow('Routing Number (ACH)', r['Routing Number (ACH)'], true));
+          wrap.appendChild(mkRow('SWIFT (international)', r['SWIFT (international)']));
+          wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
+          wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
+          card.appendChild(wrap);
+
+          host.appendChild(card);
+        }
+      }
+    }
+
+    function paintUser(user){
+      document.getElementById('signedAs').textContent = `Signed in as ${user?.email||''}`;
+      document.getElementById('kpi-name').textContent  = user?.name || '—';
+      document.getElementById('kpi-email').textContent = user?.email || '—';
+    }
+
+    async function loadAll(){
+      setStatus('Loading…');
+      const [{ funds, email, actingAs }, { wires }] = await Promise.all([ loadFundsWithInterest(), loadWireRows() ]);
+      const memberFunds = funds.map(f => f.fund || f.name || '');
+      document.getElementById('kpi-scope').textContent = memberFunds.length ? `${memberFunds.length} entit${memberFunds.length>1?'ies':'y'}` : '—';
+      document.getElementById('kpi-scope-sub').textContent = memberFunds.length ? 'Filtered by your GP Interests' : 'No active GP Interests found';
+      renderBankCards(wires || [], memberFunds);
+      if (actingAs && actingAs !== email){
+        document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${email})`;
+      }
+      setStatus('');
+    }
+
+    async function bootWithSession(){
       const r = await me();
       if (r.ok){
-        try { return await r.json(); } catch { return { user:null }; }
+        const { user } = await r.json();
+        paintUser(user);
+        await loadAll();
+        return true;
       }
-      await sleep(150);
+      return false;
     }
-    throw new Error('Session not ready');
-  }
 
-  // ==== GIS (popup; no FedCM) ====
-  function initGis(){
-    if (!window.google || !google.accounts || !google.accounts.id){
-      setTimeout(initGis, 50);
-      return;
-    }
-    google.accounts.id.initialize({
-      client_id: WEB_CLIENT_ID,
-      callback: ({credential}) => afterSignIn(credential),
-      ux_mode: 'popup',            // use popup
-      auto_select: false,          // no auto-prompt
-      use_fedcm_for_prompt: false  // silence FedCM errors
-    });
-  
-    const btnHost = document.getElementById('g_id_signin');
-    if (btnHost) {
-      google.accounts.id.renderButton(btnHost, {
-        theme: 'outline',
-        size: 'large',
-        text: 'signin_with'
-      });
-    }
-    // IMPORTANT: do NOT call google.accounts.id.prompt() here.
-  }
-
-  async function afterSignIn(credential){
-    try{
-      const r = await fetch('/api/session', {
-        method:'POST',
-        headers:{'content-type':'application/json'},
-        credentials:'include',
-        cache:'no-store',
-        body: JSON.stringify({ credential })
-      });
-      if(!r.ok) throw new Error('session create failed');
-      await waitForSession(6000); // wait for cookie visibility
-      await bootWithSession();    // load user + data
-      setStatus('');
-    }catch(e){
-      console.error(e);
-      setStatus('Sign-in failed. Try again.');
-    }
-  }
-
-  // ==== data ====
-  async function loadFundsWithInterest(){
-    const payload = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
-    const funds = (payload.funds||[]).filter(f => (typeof f.interestFrac==='number' ? f.interestFrac : 0) > 0);
-    return { funds, actingAs: payload.actingAs || null, email: payload.email || null };
-  }
-  async function loadWireRows(){
-    const { wires } = await apiPost('/api/list-wires', { ...adminBody() }, adminHeaders());
-    return Array.isArray(wires) ? wires : [];
-  }
-
-  // ==== masking/copy ====
-  function masked(val, visible=false){
-    const s = String(val||'').replace(/\s/g,'').trim();
-    if (!s) return '';
-    if (visible) return String(val);
-    const last4 = s.slice(-4);
-    return '•'.repeat(Math.max(0, s.length - 4)) + last4;
-  }
-  function copyText(text){
-    navigator.clipboard?.writeText(String(text)).then(()=>{ setStatus('Copied'); setTimeout(()=>setStatus(''),1000); });
-  }
-  function mkRow(label, raw, sensitive=false){
-    const row = document.createElement('div'); row.className='rows';
-    const l = document.createElement('div'); l.className='label'; l.textContent = label;
-    const v = document.createElement('div'); v.className='value';
-    const btns = document.createElement('div'); btns.className='buttons';
-    let revealed = false;
-    const render = ()=> v.textContent = sensitive ? masked(raw, revealed) : (raw || '');
-    render();
-
-    if (raw && String(raw).trim()){
-      const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy';
-      copyBtn.addEventListener('click', ()=> copyText(raw)); btns.appendChild(copyBtn);
-      if (sensitive){
-        const tog = document.createElement('button'); tog.className='btn'; tog.textContent='Reveal';
-        tog.addEventListener('click', ()=>{ revealed = !revealed; tog.textContent = revealed ? 'Hide' : 'Reveal'; render(); });
-        btns.appendChild(tog);
+    // ==== start ====
+    (async function start(){
+      try{
+        // if a cookie already exists, use it; otherwise show the GIS button
+        if (await bootWithSession()) return;
+        await sleep(250);
+        if (await bootWithSession()) return;
+        setStatus('Session not ready');
+        initGis(); // render popup button
+      }catch(e){
+        console.error(e);
+        setStatus('Failed to load wire instructions');
       }
-    } else {
-      v.innerHTML = '<span class="muted">—</span>';
-    }
-    row.appendChild(l); row.appendChild(v); row.appendChild(btns);
-    return row;
-  }
-
-  // ==== render ====
-  function renderBankCards(wires, memberFunds){
-    const host = document.getElementById('bankWrap'); host.innerHTML = '';
-    const byFund = new Map();
-    for (const f of memberFunds) byFund.set(norm(f), true);
-
-    // match on Entity Short Name, then Entity Legal Name
-    const rows = wires.filter(r=>{
-      const shortName = norm(r['Entity Short Name'] || '');
-      const legalName = norm(r['Entity Legal Name'] || '');
-      return byFund.has(shortName) || byFund.has(legalName);
-    });
-
-    if (!rows.length){
-      const empty = document.createElement('div');
-      empty.className = 'card';
-      empty.innerHTML = '<div class="sub">No wire instructions are available for your current holdings.</div>';
-      host.appendChild(empty);
-      return;
-    }
-
-    const groups = new Map();
-    for (const r of rows){
-      const key = r['Entity Short Name'] || r['Entity Legal Name'] || 'Entity';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(r);
-    }
-
-    for (const [entity, list] of groups){
-      for (const r of list){
-        const card = document.createElement('div'); card.className='bank-card';
-        card.innerHTML = `<h4>${safe(entity)}</h4>`;
-
-        const wrap = document.createElement('div'); wrap.className='rows';
-        wrap.appendChild(mkRow('Bank Name', r['Bank Name']));
-        wrap.appendChild(mkRow('Bank Address', r['Bank Address']));
-        wrap.appendChild(mkRow('Account Name', r['Entity Legal Name']));
-        wrap.appendChild(mkRow('Account Address', r['Account Address']));
-        wrap.appendChild(mkRow('Account Number', r['Account Number'], true));
-        wrap.appendChild(mkRow('Routing Number (WIRE)', r['Routing Number (WIRE)'], true));
-        wrap.appendChild(mkRow('Routing Number (ACH)', r['Routing Number (ACH)'], true));
-        wrap.appendChild(mkRow('SWIFT (international)', r['SWIFT (international)']));
-        wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
-        wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
-        card.appendChild(wrap);
-
-        host.appendChild(card);
-      }
-    }
-  }
-
-  function paintUser(user){
-    document.getElementById('signedAs').textContent = `Signed in as ${user?.email||''}`;
-    document.getElementById('kpi-name').textContent  = user?.name || '—';
-    document.getElementById('kpi-email').textContent = user?.email || '—';
-  }
-
-  let __user = null;
-  async function loadAll(){
-    setStatus('Loading…');
-    const [{ funds, actingAs, email }, wires] = await Promise.all([ loadFundsWithInterest(), loadWireRows() ]);
-    const memberFunds = funds.map(f => f.fund || f.name || '');
-    document.getElementById('kpi-scope').textContent = memberFunds.length ? `${memberFunds.length} entit${memberFunds.length>1?'ies':'y'}` : '—';
-    document.getElementById('kpi-scope-sub').textContent = memberFunds.length ? 'Filtered by your GP Interests' : 'No active GP Interests found';
-    renderBankCards(wires || [], memberFunds);
-    if (__user && actingAs && actingAs !== email){
-      document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${__user.email})`;
-    }
-    setStatus('');
-  }
-
-  async function bootWithSession(){
-    const r = await me();
-    if (r.ok){
-      const { user } = await r.json();
-      __user = user || null;
-      paintUser(user);
-      await loadAll();
-      return true;
-    }
-    return false;
-  }
-
-  // ==== start ====
-  (async function start(){
-    try{
-      if (await bootWithSession()) return;
-      await sleep(250);
-      if (await bootWithSession()) return;
-
-      // no cookie -> show the Google button (popup login)
-      setStatus('Session not ready');
-      initGis();
-    }catch(e){
-      console.error(e);
-      setStatus('Failed to load wire instructions');
-    }
-  })();
-})();
+    })();
   </script>
 </body>
 </html>
-
-
