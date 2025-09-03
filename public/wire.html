@@ -27,7 +27,7 @@
     .title-row { display:flex; align-items:flex-start; gap:12px; margin-top:8px; }
     .title { font-size:28px; font-weight:700; color:var(--navy); }
     .sub { color:#666; font-size:12px; }
-    .topbar { margin-left:auto; display:flex; align-items:flex-start; gap:8px; position:relative; }
+    .topbar { margin-left:auto; display:flex; align-items:center; gap:8px; position:relative; }
     #status { color:#b00; min-height:16px; }
 
     .nav { display:flex; flex-direction:column; gap:6px; }
@@ -59,6 +59,9 @@
       .grid, .bank-grid { grid-template-columns: 1fr; }
     }
   </style>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app">
@@ -81,6 +84,7 @@
           </div>
           <div class="topbar">
             <span id="signedAs" class="sub">Signed out</span>
+            <span id="g_id_signin"></span>
             <span id="status" class="sub"></span>
           </div>
         </div>
@@ -111,6 +115,9 @@
   </div>
 
   <script>
+    // ==== CONFIG ====
+    const WEB_CLIENT_ID = '468716163323-st1b43fu76emqlj1cde6mmq770sbeno1.apps.googleusercontent.com';
+
     // ==== utils / auth helpers ====
     const safe = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const sleep = ms => new Promise(r=>setTimeout(r,ms));
@@ -130,14 +137,36 @@
       return j ?? { ok:true, raw:text };
     }
     async function me(){ return fetch('/api/me', { credentials:'include', cache:'no-store' }); }
-    async function waitForSession(timeoutMs=5000){
-      const start = Date.now();
-      while(Date.now()-start < timeoutMs){
-        const r = await me();
-        if(r.ok){ try{ return await r.json(); }catch{ return { user:null }; } }
-        await sleep(150);
+
+    // ==== GIS (adds session when missing) ====
+    function initGis(){
+      if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
+      google.accounts.id.initialize({
+        client_id: WEB_CLIENT_ID,
+        callback: ({credential}) => afterSignIn(credential),
+        auto_select: true,
+        use_fedcm_for_prompt: true,
+        cancel_on_tap_outside: false
+      });
+      const btnHost = document.getElementById('g_id_signin');
+      if (btnHost) google.accounts.id.renderButton(btnHost, { theme:'outline', size:'large' });
+      google.accounts.id.prompt();
+    }
+    async function afterSignIn(credential){
+      try{
+        const r = await fetch('/api/session', {
+          method:'POST',
+          headers:{'content-type':'application/json'},
+          credentials:'include',
+          cache:'no-store',
+          body: JSON.stringify({ credential })
+        });
+        if(!r.ok) throw new Error('session create failed');
+        await bootWithSession(); // now that cookie exists, load data
+      }catch(e){
+        console.error(e);
+        setStatus('Sign-in failed. Please try again.');
       }
-      throw new Error('Session not ready');
     }
 
     // ==== data ====
@@ -207,7 +236,6 @@
         return;
       }
 
-      // Group by entity short name (fallback legal)
       const groups = new Map();
       for (const r of rows){
         const key = r['Entity Short Name'] || r['Entity Legal Name'] || 'Entity';
@@ -218,19 +246,17 @@
       for (const [entity, list] of groups){
         for (const r of list){
           const card = document.createElement('div'); card.className='bank-card';
-          const pill = ''; // optional: add a use/purpose pill if you later add a column
-          card.innerHTML = `<h4>${safe(entity)} ${pill}</h4>`;
+          card.innerHTML = `<h4>${safe(entity)}</h4>`;
 
           const wrap = document.createElement('div'); wrap.className='rows';
           wrap.appendChild(mkRow('Bank Name', r['Bank Name']));
           wrap.appendChild(mkRow('Bank Address', r['Bank Address']));
-          wrap.appendChild(mkRow('Account Name', r['Entity Legal Name'])); // usually the account holder
+          wrap.appendChild(mkRow('Account Name', r['Entity Legal Name'])); // holder
           wrap.appendChild(mkRow('Account Address', r['Account Address']));
           wrap.appendChild(mkRow('Account Number', r['Account Number'], true));
           wrap.appendChild(mkRow('Routing Number (WIRE)', r['Routing Number (WIRE)'], true));
           wrap.appendChild(mkRow('Routing Number (ACH)', r['Routing Number (ACH)'], true));
           wrap.appendChild(mkRow('SWIFT (international)', r['SWIFT (international)']));
-          // Contacts for verbal confirmation
           wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
           wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
           card.appendChild(wrap);
@@ -240,34 +266,50 @@
       }
     }
 
+    function paintUser(user){
+      document.getElementById('signedAs').textContent = `Signed in as ${user?.email||''}`;
+      document.getElementById('kpi-name').textContent  = user?.name || '—';
+      document.getElementById('kpi-email').textContent = user?.email || '—';
+    }
+
+    async function loadAll(){
+      setStatus('Loading…');
+      const [{ funds, email, actingAs }, { wires }] = await Promise.all([ loadFundsWithInterest(), loadWireRows() ]);
+      const memberFunds = funds.map(f => f.fund || f.name || '');
+      document.getElementById('kpi-scope').textContent = memberFunds.length ? `${memberFunds.length} entit${memberFunds.length>1?'ies':'y'}` : '—';
+      document.getElementById('kpi-scope-sub').textContent = memberFunds.length ? 'Filtered by your GP Interests' : 'No active GP Interests found';
+      renderBankCards(wires || [], memberFunds);
+      if (actingAs && actingAs !== email){
+        document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${email})`;
+      }
+      setStatus('');
+    }
+
+    async function bootWithSession(){
+      const r = await me();
+      if (r.ok){
+        const { user } = await r.json();
+        paintUser(user);
+        await loadAll();
+        return true;
+      }
+      return false;
+    }
+
     // ==== start ====
     (async function start(){
       try{
-        let r = await me();
-        if (r.ok){
-          const { user } = await r.json();
-          document.getElementById('signedAs').textContent = `Signed in as ${user?.email||''}`;
-          document.getElementById('kpi-name').textContent  = user?.name || '—';
-          document.getElementById('kpi-email').textContent = user?.email || '—';
-        } else {
-          await waitForSession(4000);
-        }
+        // Try existing session (twice in case of immediate refresh)
+        if (await bootWithSession()) return;
+        await sleep(250);
+        if (await bootWithSession()) return;
 
-        setStatus('Loading…');
-        const [{ funds, email, actingAs }, { wires }] = await Promise.all([ loadFundsWithInterest(), loadWireRows() ]);
-        const memberFunds = funds.map(f => f.fund || f.name || '');
-
-        document.getElementById('kpi-scope').textContent = memberFunds.length ? `${memberFunds.length} entit${memberFunds.length>1?'ies':'y'}` : '—';
-        document.getElementById('kpi-scope-sub').textContent = memberFunds.length ? 'Filtered by your GP Interests' : 'No active GP Interests found';
-        renderBankCards(wires || [], memberFunds);
-
-        if (actingAs && actingAs !== email){
-          document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${email})`;
-        }
-        setStatus('');
-      } catch (e){
+        // No session -> prompt GIS to create it
+        setStatus('Session not ready');
+        initGis();
+      }catch(e){
         console.error(e);
-        setStatus(e.message || 'Failed to load wire instructions');
+        setStatus('Failed to load wire instructions');
       }
     })();
   </script>
