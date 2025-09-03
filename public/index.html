@@ -47,6 +47,7 @@
     .topbar { margin-left:auto; display:flex; align-items:flex-start; gap:8px; position:relative; }
     .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     #status { color:#b00; min-height:16px; }
+    .kpi:empty { display:none; }
 
     /* ===== Impersonation ===== */
     .imp { position:relative; }
@@ -164,7 +165,7 @@
           </div>
           <div class="card">
             <div class="sub" id="kpi-right-title">Current Balance</div>
-            <div id="kpi-right-value" class="kpi">—</div>
+            <div id="kpi-right-value" class="kpi"></div>
             <div id="kpi-right-sub" class="sub" style="margin-top:4px;">—</div>
           </div>
         </div>
@@ -328,13 +329,13 @@
       kTitle.textContent = 'Capital Calls';
 
       // Three uniform rows (2nd row links to Member Outstanding Balance page)
-      kSub.innerHTML = `
-        <div class="kpi-rows">
-          <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
-          <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
-          <div><strong>Member Contributions to Date</strong> — $${money(contributionsToDate)}</div>
-        </div>
-      `;
+    kSub.innerHTML = `
+      <div class="kpi-rows">
+        <div>Total Capital Calls to Date — $${money(capitalCalls)}</div>
+        <div><a href="#/transactions">(Less: Member Balance Outstanding) — $${money(memberBalanceOutstanding)}</a></div>
+        <div><strong>Member Contributions to Date — $${money(contributionsToDate)}</strong></div>
+      </div>
+    `;
     }
 
     // ===== render: transactions =====
@@ -841,4 +842,5 @@
   </script>
 </body>
 </html>
+
 
