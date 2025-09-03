@@ -1,0 +1,275 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico">
+  <meta name="theme-color" content="#1E2B45">
+  <meta property="og:title" content="Allegis Portal – Wire Instructions">
+  <meta property="og:description" content="Member-specific wire instructions">
+  <meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
+  <meta property="og:url" content="https://portal.allegiscapital.com/wire.html">
+  <title>Wire Instructions • Allegis Portal</title>
+  <style>
+    :root { --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; --sidebar:#ffffff; }
+    * { box-sizing: border-box; }
+    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
+
+    .app { display:grid; grid-template-columns: 240px 1fr; min-height:100vh; }
+    .sidebar { background:var(--sidebar); border-right:1px solid var(--border); padding:16px 14px; position:sticky; top:0; height:100vh; overflow:auto; }
+    .sidebar .brand-row { margin-bottom:44px; }
+    .content { padding:16px 24px 24px 12px; }
+    .wrap { max-width:1100px; margin:0; }
+
+    .brand-row { display:flex; align-items:center; gap:12px; }
+    .brand-row img { height:56px; }
+    .title-row { display:flex; align-items:flex-start; gap:12px; margin-top:8px; }
+    .title { font-size:28px; font-weight:700; color:var(--navy); }
+    .sub { color:#666; font-size:12px; }
+    .topbar { margin-left:auto; display:flex; align-items:flex-start; gap:8px; position:relative; }
+    #status { color:#b00; min-height:16px; }
+
+    .nav { display:flex; flex-direction:column; gap:6px; }
+    .nav a { display:block; padding:10px 12px; border-radius:10px; text-decoration:none; color:#2a4b8d; font-weight:500; }
+    .nav a.active { background:#eef3ff; text-decoration:none; }
+
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
+    .card h3 { margin:0; font-size:16px; }
+    .kpi { font-size:28px; font-weight:700; }
+
+    .bank-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
+    .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+    .bank-card h4 { margin:0 0 8px 0; font-size:15px; color:var(--navy); }
+    .pill { display:inline-block; font-size:11px; padding:3px 8px; border-radius:999px; background:#eef3ff; color:#2a4b8d; margin-left:6px; }
+    .rows { display:grid; grid-template-columns: 180px 1fr auto; gap:6px 12px; align-items:center; margin-top:6px; }
+    .label { color:#666; font-size:12px; }
+    .value { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:13px; }
+    .buttons { display:flex; gap:6px; }
+    .btn { padding:5px 8px; font-size:12px; border:1px solid #dde3f5; background:#f5f7fb; border-radius:8px; cursor:pointer; }
+    .muted { color:#888; }
+    .note { margin-top:10px; font-size:12px; color:#555; }
+    .divider { height:1px; background:#f0f3fb; margin:10px 0; }
+    .hidden { display:none !important; }
+
+    @media (max-width: 920px){
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position:relative; height:auto; border-right:none; border-bottom:1px solid var(--border); }
+      .grid, .bank-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand-row"><img src="/assets/allegis-logo.svg" alt="Allegis Capital"></div>
+      <nav class="nav">
+        <a href="/index.html#/interests">GP Interests</a>
+        <a href="/index.html#/transactions">Member Outstanding Balance</a>
+        <a href="/index.html#/documents">Documents</a>
+        <a href="/wire.html" class="active">Wire Instructions</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="wrap">
+        <div class="title-row">
+          <div>
+            <div class="title">Wire Instructions</div>
+            <div class="sub">Visible only for entities where your GP Interest &gt; 0</div>
+          </div>
+          <div class="topbar">
+            <span id="signedAs" class="sub">Signed out</span>
+            <span id="status" class="sub"></span>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top:12px;">
+          <div class="card">
+            <div class="sub">Member</div>
+            <div id="kpi-name" class="kpi">—</div>
+            <div id="kpi-email" class="sub" style="margin-top:4px;">—</div>
+          </div>
+          <div class="card">
+            <div class="sub">Scope</div>
+            <div class="kpi" id="kpi-scope">—</div>
+            <div class="sub" id="kpi-scope-sub" style="margin-top:4px;">—</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="sub">
+            <strong style="color:var(--red);">Security Reminder:</strong>
+            Always confirm wire instructions via an out-of-band method (phone or known contact) before sending funds.
+          </div>
+        </div>
+
+        <div id="bankWrap" class="bank-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ==== utils / auth helpers ====
+    const safe = s => String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const sleep = ms => new Promise(r=>setTimeout(r,ms));
+    const norm  = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    function setStatus(msg){ const el=document.getElementById('status'); if(el) el.textContent = msg || ''; }
+
+    window.__admin = { actAs:null, token:null, reason:'' };
+    function adminHeaders(){ return window.__admin?.token ? { 'X-Admin-Token': window.__admin.token } : {}; }
+    function adminBody(){ const o={}; if(window.__admin?.actAs){ o.actAs = window.__admin.actAs; if(window.__admin?.reason) o.reason = window.__admin.reason; } return o; }
+
+    async function apiPost(path, body, extraHeaders){
+      const headers = { 'Content-Type':'application/json', ...(extraHeaders||{}) };
+      const r = await fetch(path, { method:'POST', headers, credentials:'include', cache:'no-store', body: JSON.stringify(body||{}) });
+      const text = await r.text();
+      let j=null; try{ j = JSON.parse(text); }catch{}
+      if(!r.ok || (j && j.error)){ const msg=(j&&(j.error||j.message))||text||`HTTP ${r.status}`; throw new Error(msg.trim()); }
+      return j ?? { ok:true, raw:text };
+    }
+    async function me(){ return fetch('/api/me', { credentials:'include', cache:'no-store' }); }
+    async function waitForSession(timeoutMs=5000){
+      const start = Date.now();
+      while(Date.now()-start < timeoutMs){
+        const r = await me();
+        if(r.ok){ try{ return await r.json(); }catch{ return { user:null }; } }
+        await sleep(150);
+      }
+      throw new Error('Session not ready');
+    }
+
+    // ==== data ====
+    async function loadFundsWithInterest(){
+      const payload = await apiPost('/api/list-interests', { ...adminBody() }, adminHeaders());
+      const funds = (payload.funds||[]).filter(f => (typeof f.interestFrac==='number' ? f.interestFrac : 0) > 0);
+      return { funds, updated: payload.updated, email: payload.email, actingAs: payload.actingAs };
+    }
+    async function loadWireRows(){
+      const { wires, updated } = await apiPost('/api/list-wires', { ...adminBody() }, adminHeaders());
+      return { wires: Array.isArray(wires) ? wires : [], updated };
+    }
+
+    // ==== masking/copy ====
+    function masked(val, visible=false){
+      const s = String(val||'').replace(/\s/g,'').trim();
+      if (!s) return '';
+      if (visible) return String(val);
+      const last4 = s.slice(-4);
+      return '•'.repeat(Math.max(0, s.length - 4)) + last4;
+    }
+    function copyText(text){
+      navigator.clipboard?.writeText(String(text)).then(()=>{ setStatus('Copied'); setTimeout(()=>setStatus(''),1000); });
+    }
+    function mkRow(label, raw, sensitive=false){
+      const row = document.createElement('div'); row.className='rows';
+      const l = document.createElement('div'); l.className='label'; l.textContent = label;
+      const v = document.createElement('div'); v.className='value';
+      const btns = document.createElement('div'); btns.className='buttons';
+      let revealed = false;
+      const render = ()=> v.textContent = sensitive ? masked(raw, revealed) : (raw || '');
+      render();
+
+      if (raw && String(raw).trim()){
+        const copyBtn = document.createElement('button'); copyBtn.className='btn'; copyBtn.textContent='Copy';
+        copyBtn.addEventListener('click', ()=> copyText(raw)); btns.appendChild(copyBtn);
+        if (sensitive){
+          const tog = document.createElement('button'); tog.className='btn'; tog.textContent='Reveal';
+          tog.addEventListener('click', ()=>{ revealed = !revealed; tog.textContent = revealed ? 'Hide' : 'Reveal'; render(); });
+          btns.appendChild(tog);
+        }
+      } else {
+        v.innerHTML = '<span class="muted">—</span>';
+      }
+      row.appendChild(l); row.appendChild(v); row.appendChild(btns);
+      return row;
+    }
+
+    // ==== render ====
+    function renderBankCards(wires, memberFunds){
+      const host = document.getElementById('bankWrap'); host.innerHTML = '';
+      const byFund = new Map();
+      for (const f of memberFunds) byFund.set(norm(f), true);
+
+      // Prefer match on Entity Short Name, then fallback to Entity Legal Name
+      const rows = wires.filter(r=>{
+        const shortName = norm(r['Entity Short Name'] || '');
+        const legalName = norm(r['Entity Legal Name'] || '');
+        return byFund.has(shortName) || byFund.has(legalName);
+      });
+
+      if (!rows.length){
+        const empty = document.createElement('div');
+        empty.className = 'card';
+        empty.innerHTML = '<div class="sub">No wire instructions are available for your current holdings.</div>';
+        host.appendChild(empty);
+        return;
+      }
+
+      // Group by entity short name (fallback legal)
+      const groups = new Map();
+      for (const r of rows){
+        const key = r['Entity Short Name'] || r['Entity Legal Name'] || 'Entity';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      }
+
+      for (const [entity, list] of groups){
+        for (const r of list){
+          const card = document.createElement('div'); card.className='bank-card';
+          const pill = ''; // optional: add a use/purpose pill if you later add a column
+          card.innerHTML = `<h4>${safe(entity)} ${pill}</h4>`;
+
+          const wrap = document.createElement('div'); wrap.className='rows';
+          wrap.appendChild(mkRow('Bank Name', r['Bank Name']));
+          wrap.appendChild(mkRow('Bank Address', r['Bank Address']));
+          wrap.appendChild(mkRow('Account Name', r['Entity Legal Name'])); // usually the account holder
+          wrap.appendChild(mkRow('Account Address', r['Account Address']));
+          wrap.appendChild(mkRow('Account Number', r['Account Number'], true));
+          wrap.appendChild(mkRow('Routing Number (WIRE)', r['Routing Number (WIRE)'], true));
+          wrap.appendChild(mkRow('Routing Number (ACH)', r['Routing Number (ACH)'], true));
+          wrap.appendChild(mkRow('SWIFT (international)', r['SWIFT (international)']));
+          // Contacts for verbal confirmation
+          wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
+          wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
+          card.appendChild(wrap);
+
+          host.appendChild(card);
+        }
+      }
+    }
+
+    // ==== start ====
+    (async function start(){
+      try{
+        let r = await me();
+        if (r.ok){
+          const { user } = await r.json();
+          document.getElementById('signedAs').textContent = `Signed in as ${user?.email||''}`;
+          document.getElementById('kpi-name').textContent  = user?.name || '—';
+          document.getElementById('kpi-email').textContent = user?.email || '—';
+        } else {
+          await waitForSession(4000);
+        }
+
+        setStatus('Loading…');
+        const [{ funds, email, actingAs }, { wires }] = await Promise.all([ loadFundsWithInterest(), loadWireRows() ]);
+        const memberFunds = funds.map(f => f.fund || f.name || '');
+
+        document.getElementById('kpi-scope').textContent = memberFunds.length ? `${memberFunds.length} entit${memberFunds.length>1?'ies':'y'}` : '—';
+        document.getElementById('kpi-scope-sub').textContent = memberFunds.length ? 'Filtered by your GP Interests' : 'No active GP Interests found';
+        renderBankCards(wires || [], memberFunds);
+
+        if (actingAs && actingAs !== email){
+          document.getElementById('signedAs').textContent = `Acting as ${actingAs} (admin: ${email})`;
+        }
+        setStatus('');
+      } catch (e){
+        console.error(e);
+        setStatus(e.message || 'Failed to load wire instructions');
+      }
+    })();
+  </script>
+</body>
+</html>
