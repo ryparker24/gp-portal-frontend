@@ -34,3 +34,7 @@
     ]
   }]
 }
+
+{ "source": "/api/list-wires", "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
+
+
