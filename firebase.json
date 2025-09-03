@@ -1,40 +1,38 @@
 {
-  "hosting": [{
-    "site": "allegisgp",
-    "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "cleanUrls": true,
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "get-portal-data",
-          "region": "us-west3"
+  "hosting": [
+    {
+      "site": "allegisgp",
+      "public": "public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": true,
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "get-portal-data",
+            "region": "us-west3"
+          }
         }
-      }
-    ],
-    "headers": [
-      {
-        "source": "/api/**",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-store" },
-          { "key": "Vary", "value": "Cookie" }
-        ]
-      },
-      {
-        "source": "**/*.html",
-        "headers": [
-          { "key": "Cache-Control", "value": "public, max-age=600" }
-        ]
-      }
-    ]
-  }]
+      ],
+      "headers": [
+        {
+          "source": "/api/**",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-store" },
+            { "key": "Vary", "value": "Cookie" }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            { "key": "Cache-Control", "value": "public, max-age=600" }
+          ]
+        }
+      ]
+    }
+  ]
 }
-
-{ "source": "/api/list-wires", "run": { "serviceId": "get-portal-data", "region": "us-west3" } }
-
-
