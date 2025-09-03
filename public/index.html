@@ -254,6 +254,15 @@
       const mag = Number(signProbe.replace(/[^0-9.]/g, '')) || 0;
       return isNeg ? -mag : mag;
     }
+    // Show uncaught errors in the status bar and console
+    window.addEventListener('error', (e) => {
+      console.error(e.error || e.message || e);
+      setStatus('Script error: ' + (e.message || 'See console'));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled promise rejection:', e.reason);
+      setStatus('Error: ' + (e.reason?.message || 'See console'));
+    });
 
     // ===== admin (impersonation) state =====
     window.__admin = { actAs: null, token: null, reason: '' };
@@ -636,37 +645,38 @@
     document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
 
     // ===== router =====
-    function setRoute(hash){
-      const isDocs = (hash === '#/documents');
-      const isInterests = (hash === '#/interests');  // ADD
-    
-      // show/hide cards
-      document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests);
-      document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
-      document.getElementById('card-interests').classList.toggle('hidden', !isInterests); // ADD
-    
-      // sidebar
-      document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
-      document.getElementById('linkDocs').classList.toggle('active', isDocs);
-      document.getElementById('linkInterests').classList.toggle('active', isInterests); // ADD
-
-      // --- OPTIONAL: clear KPI value/sub to avoid stale UI while loading
-      const kVal = document.getElementById('kpi-right-value');
-      const kSub = document.getElementById('kpi-right-sub');
-      if (kVal) kVal.textContent = '—';
-      if (kSub) kSub.innerHTML = '';
+     function setRoute(hash){
+    const isDocs = (hash === '#/documents');
+    const isInterests = (hash === '#/interests');
   
-      // KPI label defaults per tab
-      if (isDocs) {
-        document.getElementById('kpi-right-title').textContent = 'Documents';
-        loadDocuments();
-      } else if (isInterests) {
-        document.getElementById('kpi-right-title').textContent = 'Capital Calls'; // match KPI on Interests tab
-        loadInterests();
-      } else {
-        document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
-        loadTransactions();
-      }
+    // show/hide cards
+    document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests);
+    document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
+    document.getElementById('card-interests').classList.toggle('hidden', !isInterests);
+  
+    // sidebar
+    document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests));
+    document.getElementById('linkDocs').classList.toggle('active', isDocs);
+    document.getElementById('linkInterests').classList.toggle('active', isInterests);
+  
+    // OPTIONAL: clear KPI value/sub to avoid stale UI while loading
+    const kVal = document.getElementById('kpi-right-value');
+    const kSub = document.getElementById('kpi-right-sub');
+    if (kVal) kVal.textContent = '—';
+    if (kSub) kSub.innerHTML = '';
+  
+    // KPI label defaults per tab
+    if (isDocs) {
+      document.getElementById('kpi-right-title').textContent = 'Documents';
+      loadDocuments();
+    } else if (isInterests) {
+      document.getElementById('kpi-right-title').textContent = 'Capital Calls';
+      loadInterests();
+    } else {
+      document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
+      loadTransactions();
+    }
+  }
 
 
     window.addEventListener('hashchange', () => setRoute(location.hash));
@@ -857,6 +867,7 @@
   </script>
 </body>
 </html>
+
 
 
 
