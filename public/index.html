@@ -517,8 +517,8 @@
 
   // Rows
   addRow('Start',               f => f.startDate, { raw:true });
-  addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:true });
-  addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:true });
+  addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:false });
+  addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:false });
   addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
   addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
   addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
@@ -923,6 +923,7 @@
   </script>
 </body>
 </html>
+
 
 
 
