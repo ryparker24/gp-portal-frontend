@@ -15,7 +15,7 @@
     * { box-sizing: border-box; }
     body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
 
-    /* KPI sub-rows (same size as table body) */
+    /* KPI sub-rows */
     .kpi-rows{ font-size:16px; line-height:1.75; }
     .kpi-rows div{ margin-top:2px; }
     .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
@@ -75,50 +75,54 @@
     /* ===== Wire cards ===== */
     .bank-grid{
       display:grid;
-      grid-template-columns: 1fr;   /* one column always */
+      grid-template-columns: 1fr;
       gap:12px;
       margin-top:8px;
       max-width: 760px;
     }
     .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-    .bank-card h4{ margin:0 0 6px 0; }  
-    
-    /* Compact inline layout: "Field: Value" */
+    .bank-card h4{ margin:0 0 6px 0; }
     .rows-wrap{ display:grid; row-gap:2px; }
-    .rows{
-      display:flex;
-      align-items:baseline;   /* keeps text baselines aligned */
-      gap:8px;                /* space between label, value, button */
-      margin:0;               /* no extra vertical margin per row */
-    }
-    
-    .label{
-      white-space:nowrap;
-      font-size:12px; color:#666;
-    }
+    .rows{ display:flex; align-items:baseline; gap:8px; margin:0; }
+    .label{ white-space:nowrap; font-size:12px; color:#666; }
     .label::after{ content: ":"; margin-left:2px; }
-
     .value{
-      flex:1 1 auto;          /* fill remaining line */
-      min-width:0;            /* allow wrapping */
+      flex:1 1 auto; min-width:0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size:13px; line-height:1.35;
-      overflow-wrap:anywhere;
-      word-break:break-word;
+      overflow-wrap:anywhere; word-break:break-word;
     }
-    .buttons{
-      flex:0 0 auto;
-      display:flex;
-      gap:6px;
-      margin:0;
-    }
-    .btn{
-      padding:2px 6px;        /* smaller, tighter buttons */
-      font-size:11px;
-      border:1px solid #dde3f5; background:#f5f7fb; border-radius:8px; cursor:pointer;
-    }
-
+    .buttons{ flex:0 0 auto; display:flex; gap:6px; margin:0; }
+    .btn{ padding:2px 6px; font-size:11px; border:1px solid #dde3f5; background:#f5f7fb; border-radius:8px; cursor:pointer; }
     .muted { color:#888; }
+
+    /* ===== Documents: two-level tree ===== */
+    .doc-layout { display:grid; grid-template-columns: 320px 1fr; gap:12px; }
+    .doc-tree, .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
+    .doc-tree { padding:8px; border:1px solid var(--border); }
+    .doc-files { padding:0; border:1px solid var(--border); overflow:auto; }
+    .tree-head { font-weight:700; font-size:13px; color:#2a4b8d; padding:10px 12px; border-bottom:1px solid #eef2fb; }
+    .tree { list-style:none; margin:0; padding:6px; }
+    .tree li { margin:2px 0; }
+    .node { display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:8px; }
+    .node:hover { background:#f6f9ff; }
+    .chev { font-size:12px; width:14px; text-align:center; color:#888; }
+    .badge { margin-left:auto; background:#eef3ff; color:#2a4b8d; font-size:11px; padding:2px 6px; border-radius:10px; }
+    .branch { margin-left:18px; margin-top:2px; }
+
+    .files-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eef2fb; }
+    .files-title { font-size:14px; font-weight:700; color:#2a4b8d; }
+    .crumbs { font-size:12px; color:#666; }
+    .file-table { width:100%; border-collapse:collapse; }
+    .file-table th, .file-table td { padding:10px 12px; border-bottom:1px solid #f1f4fb; }
+    .file-table th { font-size:12px; color:#666; text-align:left; }
+    .file-table td.num { text-align:right; white-space:nowrap; }
+    .file-actions { display:flex; gap:8px; justify-content:flex-end; }
+    .link { color:#2a4b8d; text-decoration:underline; cursor:pointer; font-size:12px; }
+
+    @media (max-width: 1100px){
+      .doc-layout { grid-template-columns: 1fr; }
+    }
 
     /* Responsive */
     @media (max-width: 920px){
@@ -129,10 +133,9 @@
       .imp-panel { width:calc(100vw - 32px); right:0; }
     }
     tr.final-total td {
-      font-weight: 800 !important;   /* bolder than subtotal */
-      border-top: 4px solid #000;    /* thick black bar */
+      font-weight: 800 !important;
+      border-top: 4px solid #000;
     }
-
   </style>
 </head>
 <body>
@@ -225,25 +228,34 @@
 
         <!-- Documents -->
         <div id="card-docs" class="card hidden" style="margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:16px;">Documents</h3>
-            <div id="docs-updated" class="sub"></div>
+          <div class="doc-layout">
+            <div class="doc-tree">
+              <div class="tree-head">Folders</div>
+              <ul id="docTree" class="tree"></ul>
+            </div>
+            <div class="doc-files">
+              <div class="files-head">
+                <div class="files-title" id="filesTitle">Select a folder</div>
+                <div class="crumbs" id="crumbs">—</div>
+              </div>
+              <div style="overflow:auto;">
+                <table class="file-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Member</th>
+                      <th style="width:160px;">Modified</th>
+                      <th class="num" style="width:120px;">Size</th>
+                      <th style="width:140px; text-align:right;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="filesBody"></tbody>
+                  <tfoot id="filesFoot"></tfoot>
+                </table>
+              </div>
+            </div>
           </div>
-          <div style="overflow:auto;">
-            <table id="docs">
-              <thead>
-              <tr>
-                <th>Title</th>
-                <th>Member</th>
-                <th style="width:160px;">Modified</th>
-                <th class="num" style="width:120px;">Size</th>
-                <th style="width:120px;"></th>
-              </tr>
-              </thead>
-              <tbody></tbody>
-              <tfoot></tfoot>
-            </table>
-          </div>
+          <div class="sub" id="docs-updated" style="margin-top:8px;"></div>
         </div>
 
         <!-- GP Interests -->
@@ -267,9 +279,7 @@
             <h3 style="margin:0;font-size:16px;">Wire Instructions</h3>
             <div id="wire-updated" class="sub"></div>
           </div>
-
           <div id="wire-bankwrap" class="bank-grid"></div>
-
           <div class="sub" style="margin-top:12px;">
             <strong style="color:var(--red);">Security Reminder:</strong>
             Always confirm wire instructions via an out-of-band method (phone or known contact) before sending funds.
@@ -408,7 +418,7 @@
         for (const r of list) {
           running += r.net;
           const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
+          tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
           tb.appendChild(tr);
         }
         const sub = list.reduce((a, x) => a + x.net, 0);
@@ -428,126 +438,237 @@
       }
     }
 
-    // ===== render: documents =====
-    function renderDocuments(docs){
-      const tbody = document.querySelector('#docs tbody');
-      const tfoot = document.querySelector('#docs tfoot');
-      tbody.innerHTML = ''; tfoot.innerHTML = '';
-      if (!docs || !docs.length){
-        document.getElementById('docs-updated').textContent = '';
-        document.getElementById('kpi-right-title').textContent = 'Documents';
-        document.getElementById('kpi-right-value').textContent = '0';
-        document.getElementById('kpi-right-sub').textContent   = '—';
+    // ===== two-level folder helpers for Documents =====
+    function groupDocsByTypeYear(docs){
+      // Returns: Map<Type, Map<Year, Array<doc>>>
+      const byType = new Map();
+      for (const d of (docs || [])){
+        const type = String(d.Doc_Type || 'Other').trim() || 'Other';
+        const year = String(d.Doc_Year || 'Unknown').trim() || 'Unknown';
+        if (!byType.has(type)) byType.set(type, new Map());
+        const byYear = byType.get(type);
+        if (!byYear.has(year)) byYear.set(year, []);
+        byYear.get(year).push(d);
+      }
+      // sort docs within each year by ModifiedTime desc
+      for (const [, byYear] of byType){
+        for (const [, arr] of byYear){
+          arr.sort((a,b)=> (new Date(b.ModifiedTime||0)) - (new Date(a.ModifiedTime||0)));
+        }
+      }
+      return byType;
+    }
+
+    function renderTree(byType){
+      const tree = document.getElementById('docTree');
+      tree.innerHTML = '';
+      const openState = window.__openNodes || (window.__openNodes = {});
+
+      const makeNode = (label, key, count, level=0) => {
+        const li = document.createElement('li');
+        const node = document.createElement('div');
+        node.className = 'node';
+        const isOpen = !!openState[key];
+        node.innerHTML = `
+          <span class="chev">${isOpen ? '▾' : '▸'}</span>
+          <span>${safe(label)}</span>
+          <span class="badge">${count}</span>
+        `;
+        const branch = document.createElement('div');
+        branch.className = 'branch';
+        branch.style.display = isOpen ? 'block' : 'none';
+        node.addEventListener('click', () => {
+          openState[key] = !openState[key];
+          node.querySelector('.chev').textContent = openState[key] ? '▾' : '▸';
+          branch.style.display = openState[key] ? 'block' : 'none';
+        });
+        li.appendChild(node);
+        li.appendChild(branch);
+        return { li, branch };
+      };
+
+      // Build Type level
+      const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
+      for (const type of types){
+        const yearsMap = byType.get(type);
+        const totalInType = Array.from(yearsMap.values()).reduce((a,arr)=> a + arr.length, 0);
+        const { li, branch } = makeNode(type, `type:${type}`, totalInType, 0);
+
+        // Build Year level under Type
+        const years = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a)); // newest year first
+        for (const year of years){
+          const docsArr = yearsMap.get(year);
+          const { li: yLi } = makeNode(year, `type:${type}|year:${year}`, docsArr.length, 1);
+          // clicking a Year node should show files in the right pane
+          yLi.querySelector('.node').addEventListener('click', (ev)=>{
+            ev.stopPropagation(); // don't toggle parent
+            showFiles(type, year, docsArr);
+          });
+          branch.appendChild(yLi);
+        }
+        tree.appendChild(li);
+      }
+    }
+
+    function showFiles(type, year, files){
+      const title = document.getElementById('filesTitle');
+      const crumbs = document.getElementById('crumbs');
+      const body = document.getElementById('filesBody');
+      const foot = document.getElementById('filesFoot');
+      title.textContent = `${type} — ${year}`;
+      crumbs.textContent = `Documents / ${type} / ${year}`;
+      body.innerHTML = '';
+      foot.innerHTML = '';
+
+      if (!files || !files.length){
+        body.innerHTML = `<tr><td class="sub" colspan="5">No files</td></tr>`;
         return;
       }
-      tbody.innerHTML = docs.map(r => `
-        <tr>
+
+      for (const r of files){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td>${safe(r.Doc_Title || '')}</td>
           <td>${safe(r.Member_Name || '')}</td>
           <td>${r.ModifiedTime ? new Date(r.ModifiedTime).toLocaleString() : ''}</td>
           <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
-          <td><button class="dl" data-fid="${safe(r.GoogleFileID)}">Download</button></td>
-        </tr>`).join('');
+          <td>
+            <div class="file-actions">
+              ${r.ViewURL ? `<a class="link" href="${safe(r.ViewURL)}" target="_blank" rel="noopener">View</a>` : ''}
+              ${r.GoogleFileID ? `<a class="link dl" data-fid="${safe(r.GoogleFileID)}">Download</a>` : ''}
+            </div>
+          </td>
+        `;
+        body.appendChild(tr);
+      }
+
       const ft = document.createElement('tr'); ft.className = 'grand';
-      ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${docs.length}</strong></td><td></td>`;
-      tfoot.appendChild(ft);
+      ft.innerHTML = `<td><strong>Total</strong></td><td></td><td></td><td class="num"><strong>${files.length}</strong></td><td></td>`;
+      foot.appendChild(ft);
+
       document.getElementById('kpi-right-title').textContent = 'Documents';
-      document.getElementById('kpi-right-value').textContent = String(docs.length);
-      document.getElementById('kpi-right-sub').textContent   = 'Available files';
-      document.getElementById('docs-updated').textContent    = 'Loaded ' + new Date().toLocaleString();
+      document.getElementById('kpi-right-value').textContent = String(files.length);
+      document.getElementById('kpi-right-sub').textContent   = `${type} • ${year}`;
+    }
+
+    // ===== render: documents (build tree) =====
+    let __allDocs = [];
+    function renderDocuments(docs){
+      __allDocs = Array.isArray(docs) ? docs : [];
+      const byType = groupDocsByTypeYear(__allDocs);
+      renderTree(byType);
+
+      // KPI: total docs visible to user
+      const total = __allDocs.length;
+      document.getElementById('kpi-right-title').textContent = 'Documents';
+      document.getElementById('kpi-right-value').textContent = String(total);
+      document.getElementById('kpi-right-sub').textContent   = 'Total files';
+
+      // If we have at least one folder, auto-open first type/year
+      const firstType = Array.from(byType.keys())[0];
+      if (firstType){
+        const yearsMap = byType.get(firstType);
+        const firstYear = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a))[0];
+        if (firstYear){
+          showFiles(firstType, firstYear, yearsMap.get(firstYear));
+        } else {
+          document.getElementById('filesTitle').textContent = 'Select a folder';
+          document.getElementById('crumbs').textContent = '—';
+          document.getElementById('filesBody').innerHTML = '';
+          document.getElementById('filesFoot').innerHTML = '';
+        }
+      }
+      document.getElementById('docs-updated').textContent = 'Loaded ' + new Date().toLocaleString();
     }
 
     // ===== render: interests =====
     function renderInterests(payload){
-  const table = document.getElementById('interests-table');
-  const thead = table.querySelector('thead');
-  const tbody = table.querySelector('tbody');
-  const tfoot = table.querySelector('tfoot');
-  const updEl = document.getElementById('interests-updated');
+      const table = document.getElementById('interests-table');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      const tfoot = table.querySelector('tfoot');
+      const updEl = document.getElementById('interests-updated');
 
-  thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = ''; updEl.textContent = '';
-  if (!payload || !Array.isArray(payload.funds)) { setStatus('Unable to load interests.'); return; }
+      thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = ''; updEl.textContent = '';
+      if (!payload || !Array.isArray(payload.funds)) { setStatus('Unable to load interests.'); return; }
 
-  const funds = (payload.funds || []).filter(f => (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0);
-  const memberBalanceOutstanding = Number(payload.currentBalance || 0);
-  const moneyFmt = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const funds = (payload.funds || []).filter(f => (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0);
+      const memberBalanceOutstanding = Number(payload.currentBalance || 0);
+      const moneyFmt = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  if (!funds.length){
-    tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
-    setCapitalCallsKpi(0, memberBalanceOutstanding);
-    updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
-    return;
-  }
-
-  // Header
-  thead.innerHTML = `
-    <tr>
-      <th></th>
-      ${funds.map(f => `<th class="num">${safe(f.fund)}</th>`).join('')}
-      <th class="num">Total</th>
-    </tr>`;
-
-  function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false, raw=false, format=null } = {}){
-    const values = funds.map(f => {
-      const vRaw = (typeof field === 'function') ? field(f) : f[field];
-      if (raw) return safe(vRaw ?? '—');
-      if (moneyCells) {
-        const base = `$${moneyFmt(Number(vRaw || 0))}`;
-        return format ? format(base) : base;
+      if (!funds.length){
+        tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
+        setCapitalCallsKpi(0, memberBalanceOutstanding);
+        updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+        return;
       }
-      return safe(vRaw ?? '—');
-    });
 
-    let totalCell = '—';
-    if (sumTotal){
-      const total = funds.reduce((a,f)=>{
-        const vRaw = (typeof field === 'function') ? field(f) : f[field];
-        return a + Number(vRaw || 0);
-      }, 0);
-      const baseTotal = `$${moneyFmt(total)}`;
-      totalCell = format ? format(baseTotal) : baseTotal;
+      // Header
+      thead.innerHTML = `
+        <tr>
+          <th></th>
+          ${funds.map(f => `<th class="num">${safe(f.fund)}</th>`).join('')}
+          <th class="num">Total</th>
+        </tr>`;
+
+      function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false, raw=false, format=null } = {}){
+        const values = funds.map(f => {
+          const vRaw = (typeof field === 'function') ? field(f) : f[field];
+          if (raw) return safe(vRaw ?? '—');
+          if (moneyCells) {
+            const base = `$${moneyFmt(Number(vRaw || 0))}`;
+            return format ? format(base) : base;
+          }
+          return safe(vRaw ?? '—');
+        });
+
+        let totalCell = '—';
+        if (sumTotal){
+          const total = funds.reduce((a,f)=>{
+            const vRaw = (typeof field === 'function') ? field(f) : f[field];
+            return a + Number(vRaw || 0);
+          }, 0);
+          const baseTotal = `$${moneyFmt(total)}`;
+          totalCell = format ? format(baseTotal) : baseTotal;
+        }
+
+        const tr = document.createElement('tr');
+        if (label === 'Adjusted Total') tr.className = 'final-total';
+        const cls = bold ? ' style="font-weight:700;"' : '';
+        tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      // Rows
+      addRow('Start',               f => f.startDate, { raw:true });
+      addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:false });
+      addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:false });
+      addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
+      addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
+      addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
+      addRow('Subtotal',
+            f => Number(f.employeeContrib||0) + Number(f.employerContrib||0),
+            { moneyCells:true, sumTotal:true, bold:true });
+      addRow('Distributions',
+            f => Number(f.distributions || 0),
+            { moneyCells:true, sumTotal:true, format: (val) => `(${val})` });
+      addRow('Adjusted Total',
+            f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
+            { moneyCells:true, sumTotal:true, bold:true });
+
+      // KPI on the right
+      const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
+      setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
+
+      updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+
+      const signedAs = document.getElementById('signedAs');
+      if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
+        signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
+      }
     }
 
-    const tr = document.createElement('tr');
-    if (label === 'Adjusted Total') tr.className = 'final-total'; // <- thick black border + bold via CSS
-    const cls = bold ? ' style="font-weight:700;"' : '';
-    tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
-    tbody.appendChild(tr);
-  }
-
-  // Rows
-  addRow('Start',               f => f.startDate, { raw:true });
-  addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:false });
-  addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:false });
-  addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
-  addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
-  addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
-  addRow('Subtotal',
-        f => Number(f.employeeContrib||0) + Number(f.employerContrib||0),
-        { moneyCells:true, sumTotal:true, bold:true });
-
-  // Distributions in parentheses
-  addRow('Distributions',
-        f => Number(f.distributions || 0),
-        { moneyCells:true, sumTotal:true, format: (val) => `(${val})` });
-
-  // Final row
-  addRow('Adjusted Total',
-        f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
-        { moneyCells:true, sumTotal:true, bold:true });
-
-  // KPI on the right
-  const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
-  setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
-
-  updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
-
-  const signedAs = document.getElementById('signedAs');
-  if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
-    signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
-  }
-}
-      async function loadInterests(){
+    async function loadInterests(){
       const [data, currBal] = await Promise.all([ apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()), getCurrentBalance() ]);
       data.currentBalance = currBal; renderInterests(data);
     }
@@ -577,9 +698,6 @@
       const last4 = s.slice(-4);
       return '•'.repeat(Math.max(0, s.length - 4)) + last4;
     }
-    function copyText(text){
-      navigator.clipboard?.writeText(String(text)).then(()=>{ setStatus('Copied'); setTimeout(()=>setStatus(''),1000); });
-    }
     function mkRow(label, raw, sensitive=false){
       const row = document.createElement('div'); row.className='rows';
       const l = document.createElement('div'); l.className='label'; l.textContent = label;
@@ -607,28 +725,24 @@
     function renderWireCards(wires, memberFunds, userEmail){
       const host = document.getElementById('wire-bankwrap');
       host.innerHTML = '';
-    
-      // normalize helpers
+
       const byFund = new Map();
       for (const f of memberFunds) byFund.set(norm(f), true);
       const emailKey = norm(userEmail || '');
-    
-      // Filter logic:
-      // - If Member_Email exists on the row, it must match the signed-in/acting email.
-      // - Fund match accepts either Fund Short Name (new) OR Entity Legal Name (fallback)
+
       const rows = (wires || []).filter(r => {
         const rowEmail = norm(r['Member_Email'] || '');
         const emailOk  = !rowEmail || (rowEmail === emailKey);
-    
+
         const shortName = norm(r['Fund Short Name'] || '');
         const legalName = norm(r['Entity Legal Name'] || '');
         const fundOk = byFund.size === 0
           ? true
           : byFund.has(shortName) || byFund.has(legalName);
-    
+
         return emailOk && fundOk;
       });
-    
+
       if (!rows.length){
         const empty = document.createElement('div');
         empty.className = 'sub';
@@ -636,32 +750,28 @@
         host.appendChild(empty);
         return;
       }
-    
-      // Group by a friendly title: prefer Fund Short Name, then Entity Legal Name
+
       const groups = new Map();
       for (const r of rows){
         const key = r['Fund Short Name'] || r['Entity Legal Name'] || 'Entity';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(r);
       }
-    
+
       for (const [title, list] of groups){
         for (const r of list){
           const card = document.createElement('div');
           card.className = 'bank-card';
           card.innerHTML = `<h4>${safe(title)}</h4>`;
-    
-      const wrap = document.createElement('div');
-      wrap.className = 'rows-wrap';
 
-          // NEW headers (always show these if present)
+          const wrap = document.createElement('div');
+          wrap.className = 'rows-wrap';
+
           wrap.appendChild(mkRow('Entity Legal Name',   r['Entity Legal Name']));
           wrap.appendChild(mkRow('Fund Short Name',     r['Fund Short Name']));
           if (r['Interest'] != null && String(r['Interest']).trim() !== '') {
             wrap.appendChild(mkRow('Interest', r['Interest']));
           }
-    
-          // Existing bank detail fields (kept for backward compatibility)
           wrap.appendChild(mkRow('Bank Name',                    r['Bank Name']));
           wrap.appendChild(mkRow('Bank Address',                 r['Bank Address']));
           wrap.appendChild(mkRow('Account Name',                 r['Entity Legal Name'] || r['Account Name']));
@@ -672,7 +782,7 @@
           wrap.appendChild(mkRow('SWIFT (international)',        r['SWIFT (international)']));
           wrap.appendChild(mkRow('Verbal confirmation - contact1', r['Verbal confirmation - contact1']));
           wrap.appendChild(mkRow('Verbal confirmation - contact2', r['Verbal confirmation - contact2']));
-    
+
           card.appendChild(wrap);
           host.appendChild(card);
         }
@@ -699,17 +809,29 @@
 
     // ===== data loaders =====
     async function loadTransactions(){ const data = await apiPost('/api/get-portal-data', { ...adminBody() }, adminHeaders()); renderTransactions(data); }
-    async function loadDocuments(){ const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders()); renderDocuments(docs || []); }
+    async function loadDocuments(){
+      const { docs } = await apiPost('/api/list-docs', { ...adminBody() }, adminHeaders());
+      renderDocuments(docs || []);
+    }
 
-    async function downloadDoc(fileId, btn){
+    // ===== downloads =====
+    async function downloadDoc(fileId, el){
       try{
-        btn.disabled = true; const old = btn.textContent; btn.textContent = 'Preparing…';
+        if (el) { el.classList.add('disabled'); el.textContent = 'Preparing…'; }
         const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
         location.href = `/api/dl?token=${encodeURIComponent(token)}`;
-        btn.textContent = old; btn.disabled = false;
-      }catch(e){ console.error(e); alert('Unable to download this file.'); btn.disabled=false; btn.textContent='Download'; }
+      }catch(e){ console.error(e); alert('Unable to download this file.'); }
+      finally{
+        if (el) { el.classList.remove('disabled'); el.textContent = 'Download'; }
+      }
     }
-    document.addEventListener('click', (e)=>{ const b = e.target.closest('.dl'); if (b) downloadDoc(b.getAttribute('data-fid'), b); });
+    document.addEventListener('click', (e)=>{
+      const dl = e.target.closest('.dl');
+      if (dl && dl.hasAttribute('data-fid')){
+        e.preventDefault();
+        downloadDoc(dl.getAttribute('data-fid'), dl);
+      }
+    });
 
     // ===== router =====
     function setRoute(hash){
@@ -729,13 +851,12 @@
       document.getElementById('linkInterests').classList.toggle('active', isInterests);
       document.getElementById('linkWire').classList.toggle('active', isWire);
 
-      // clear KPI value/sub to avoid stale UI while loading
+      // clear KPI right
       const kVal = document.getElementById('kpi-right-value');
       const kSub = document.getElementById('kpi-right-sub');
       if (kVal) kVal.textContent = '';
       if (kSub) kSub.innerHTML = '';
 
-      // KPI label defaults + load
       if (isDocs) {
         document.getElementById('kpi-right-title').textContent = 'Documents';
         loadDocuments();
@@ -780,7 +901,7 @@
       }
     }
 
-    // ===== GIS init (same flow your app already uses) =====
+    // ===== GIS init =====
     function initGis(){
       if(!window.google || !google.accounts || !google.accounts.id){ setTimeout(initGis,50); return; }
       google.accounts.id.initialize({
@@ -869,7 +990,7 @@
       async function startImpersonation(){
         window.__admin.actAs  = (iEmail.value || '').trim();
         window.__admin.reason = (iReason.value || '').trim();
-        window.__admin.token  = (iToken.value || '').trim(); // e.g., "page mill" per your simple admin token
+        window.__admin.token  = (iToken.value || '').trim(); // simple admin token (e.g., "page mill")
         if (!window.__admin.actAs || !window.__admin.token){
           state.textContent = 'Email and token required';
           return;
@@ -906,35 +1027,15 @@
 
     // ===== boot =====
     (function boot(){
-      // Build tag
       const tag = document.getElementById('buildTag');
       if (tag){
         const now = new Date();
         tag.textContent = `Build: ${now.toLocaleString()}`;
       }
-
-      // Initial route + listeners
       if (!location.hash) location.replace('#/transactions');
       setRoute(location.hash);
-
-      // Kick off Google Identity Services
       initGis();
     })();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
