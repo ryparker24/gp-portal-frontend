@@ -492,7 +492,7 @@
           }
           return safe(vRaw ?? '—');
         });
-      
+    
         let totalCell = '—';
         if (sumTotal){
           const total = funds.reduce((a,f)=>{
@@ -501,7 +501,7 @@
           }, 0);
           totalCell = `$${moneyFmt(total)}`;
         }
-      
+    
         const cls = bold ? ' style="font-weight:700;"' : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
@@ -512,20 +512,18 @@
       addRow('Start',               f => f.startDate, { raw:true });
       addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:true });
       addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:true });
-      addRow('Your interest in GP', f => f.interestPctDisplay, { raw:true });
+      addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
       addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
       addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
+      addRow('Subtotal',
+            f => Number(f.employeeContrib||0) + Number(f.employerContrib||0),
+            { moneyCells:true, sumTotal:true, bold:true });
     
-      // Subtotal (per fund)
-      addRow('Subtotal', f => Number(f.employeeContrib||0) + Number(f.employerContrib||0), { moneyCells:true, sumTotal:true, bold:true });
+      // Distributions (shown in parentheses) & Adjusted Total
+      addRow('Distributions',
+            f => Number(f.distributions || 0),
+            { moneyCells:true, sumTotal:true, format: (val) => `(${val})` });
     
-      // New: Distributions & Adjusted Total — read straight from server payload
-      addRow('Distributions', f => Number(f.distributions || 0), {
-        moneyCells:true,
-        sumTotal:true,
-        // custom render: format as (x,xxx.xx)
-        format: (val) => `(${val})`
-      });
       addRow('Adjusted Total',
             f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
             { moneyCells:true, sumTotal:true, bold:true });
@@ -540,6 +538,7 @@
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
+    }
       addRow('Start',               f => f.startDate);
       addRow('Fund Size',           f => parseMoney(f.fundSize), { money0Cells:true });
       addRow('GP Commitment',       f => parseMoney(f.gpCommit), { money0Cells:true });
@@ -937,6 +936,7 @@
   </script>
 </body>
 </html>
+
 
 
 
