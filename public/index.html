@@ -99,16 +99,7 @@
     /* ===== Documents: two-level tree ===== */
     .doc-layout { display:grid; grid-template-columns: 320px 1fr; gap:12px; }
     .doc-tree, .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
-    .doc-tree { padding:8px; border:1px solid var(--border); }
     .doc-files { padding:0; border:1px solid var(--border); overflow:auto; }
-    .tree-head { font-weight:700; font-size:13px; color:#2a4b8d; padding:10px 12px; border-bottom:1px solid #eef2fb; }
-    .tree { list-style:none; margin:0; padding:6px; }
-    .tree li { margin:2px 0; }
-    .node { display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:8px; }
-    .node:hover { background:#f6f9ff; }
-    .chev { font-size:12px; width:14px; text-align:center; color:#888; }
-    .badge { margin-left:auto; background:#eef3ff; color:#2a4b8d; font-size:11px; padding:2px 6px; border-radius:10px; }
-    .branch { margin-left:18px; margin-top:2px; }
 
     .files-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eef2fb; }
     .files-title { font-size:14px; font-weight:700; color:#2a4b8d; }
@@ -135,6 +126,38 @@
     tr.final-total td {
       font-weight: 800 !important;
       border-top: 4px solid #000;
+    }
+        /* Folder pane matches sidebar look */
+    #folder-pane .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+    }
+    
+    #folder-pane .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+    }
+    
+    /* badge count pill */
+    #folder-pane .nav-item .badge {
+      font-size: 12px;
+      line-height: 1;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--muted);
+      color: var(--ink);
+      opacity: .85;
+    }
+    
+    #folder-pane .nav-item.active .badge {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      opacity: 1;
     }
   </style>
 </head>
@@ -229,9 +252,9 @@
         <!-- Documents -->
         <div id="card-docs" class="card hidden" style="margin-top:12px;">
           <div class="doc-layout">
-            <div class="doc-tree">
-              <div class="tree-head">Folders</div>
-              <ul id="docTree" class="tree"></ul>
+            <div id="folder-pane" class="card">
+              <div class="card-header">Folders</div>
+              <nav id="doc-folders" class="nav-list"></nav>
             </div>
             <div class="doc-files">
               <div class="files-head">
@@ -437,6 +460,55 @@
           : `Signed in as ${data.email}`;
       }
     }
+function renderFolderList(folders, selectedKey) {
+  const host = document.getElementById('doc-folders');
+  host.innerHTML = folders.map(f => `
+    <a
+      href="#"
+      class="nav-item ${f.key === selectedKey ? 'active' : ''}"
+      data-key="${f.key}"
+      aria-current="${f.key === selectedKey ? 'page' : 'false'}"
+    >
+      <span class="label">${f.label}</span>
+      <span class="badge">${f.count ?? 0}</span>
+    </a>
+  `).join('');
+
+  host.querySelectorAll('.nav-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const key = el.dataset.key;
+
+      // update highlight
+      host.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      el.classList.add('active');
+
+      // load that folder’s docs
+      loadFolder(key); 
+    });
+  });
+}
+// Called when a folder (Type) is clicked in the left pane
+function loadFolder(typeKey){
+  const byType = window.__docsByType || new Map();
+  const yearsMap = byType.get(typeKey);
+  const filesTitle = document.getElementById('filesTitle');
+  const crumbs = document.getElementById('crumbs');
+
+  if (!yearsMap){
+    filesTitle.textContent = 'Select a folder';
+    crumbs.textContent = '—';
+    document.getElementById('filesBody').innerHTML = '';
+    document.getElementById('filesFoot').innerHTML = '';
+    return;
+  }
+
+  // Pick newest year for that Type
+  const years = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a));
+  const year = years[0];
+  const list = yearsMap.get(year) || [];
+  showFiles(typeKey, year, list);
+}
 
     // ===== two-level folder helpers for Documents =====
     function groupDocsByTypeYear(docs){
@@ -457,57 +529,6 @@
         }
       }
       return byType;
-    }
-
-    function renderTree(byType){
-      const tree = document.getElementById('docTree');
-      tree.innerHTML = '';
-      const openState = window.__openNodes || (window.__openNodes = {});
-
-      const makeNode = (label, key, count, level=0) => {
-        const li = document.createElement('li');
-        const node = document.createElement('div');
-        node.className = 'node';
-        const isOpen = !!openState[key];
-        node.innerHTML = `
-          <span class="chev">${isOpen ? '▾' : '▸'}</span>
-          <span>${safe(label)}</span>
-          <span class="badge">${count}</span>
-        `;
-        const branch = document.createElement('div');
-        branch.className = 'branch';
-        branch.style.display = isOpen ? 'block' : 'none';
-        node.addEventListener('click', () => {
-          openState[key] = !openState[key];
-          node.querySelector('.chev').textContent = openState[key] ? '▾' : '▸';
-          branch.style.display = openState[key] ? 'block' : 'none';
-        });
-        li.appendChild(node);
-        li.appendChild(branch);
-        return { li, branch };
-      };
-
-      // Build Type level
-      const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
-      for (const type of types){
-        const yearsMap = byType.get(type);
-        const totalInType = Array.from(yearsMap.values()).reduce((a,arr)=> a + arr.length, 0);
-        const { li, branch } = makeNode(type, `type:${type}`, totalInType, 0);
-
-        // Build Year level under Type
-        const years = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a)); // newest year first
-        for (const year of years){
-          const docsArr = yearsMap.get(year);
-          const { li: yLi } = makeNode(year, `type:${type}|year:${year}`, docsArr.length, 1);
-          // clicking a Year node should show files in the right pane
-          yLi.querySelector('.node').addEventListener('click', (ev)=>{
-            ev.stopPropagation(); // don't toggle parent
-            showFiles(type, year, docsArr);
-          });
-          branch.appendChild(yLi);
-        }
-        tree.appendChild(li);
-      }
     }
 
     function showFiles(type, year, files){
@@ -553,34 +574,45 @@
 
     // ===== render: documents (build tree) =====
     let __allDocs = [];
-    function renderDocuments(docs){
-      __allDocs = Array.isArray(docs) ? docs : [];
-      const byType = groupDocsByTypeYear(__allDocs);
-      renderTree(byType);
+   
+    // ===== render: documents (build folder list on the left, files on the right) =====
+let __allDocs = [];
+function renderDocuments(docs){
+  __allDocs = Array.isArray(docs) ? docs : [];
 
-      // KPI: total docs visible to user
-      const total = __allDocs.length;
-      document.getElementById('kpi-right-title').textContent = 'Documents';
-      document.getElementById('kpi-right-value').textContent = String(total);
-      document.getElementById('kpi-right-sub').textContent   = 'Total files';
+  // Group by Type → Year
+  const byType = groupDocsByTypeYear(__allDocs);
+  window.__docsByType = byType;
 
-      // If we have at least one folder, auto-open first type/year
-      const firstType = Array.from(byType.keys())[0];
-      if (firstType){
-        const yearsMap = byType.get(firstType);
-        const firstYear = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a))[0];
-        if (firstYear){
-          showFiles(firstType, firstYear, yearsMap.get(firstYear));
-        } else {
-          document.getElementById('filesTitle').textContent = 'Select a folder';
-          document.getElementById('crumbs').textContent = '—';
-          document.getElementById('filesBody').innerHTML = '';
-          document.getElementById('filesFoot').innerHTML = '';
-        }
-      }
-      document.getElementById('docs-updated').textContent = 'Loaded ' + new Date().toLocaleString();
-    }
+  // Build left “Folders” list from Types
+  const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
+  const folderItems = types.map(type => {
+    const yearsMap = byType.get(type);
+    const count = Array.from(yearsMap.values()).reduce((a,arr)=> a + arr.length, 0);
+    return { key: type, label: type, count };
+  });
 
+  const firstType = folderItems[0]?.key || null;
+  renderFolderList(folderItems, firstType);
+
+  // KPI: total docs visible to user
+  const total = __allDocs.length;
+  document.getElementById('kpi-right-title').textContent = 'Documents';
+  document.getElementById('kpi-right-value').textContent = String(total);
+  document.getElementById('kpi-right-sub').textContent   = 'Total files';
+
+  // Auto-show the newest year under the first type (if present)
+  if (firstType){
+    loadFolder(firstType);
+  } else {
+    document.getElementById('filesTitle').textContent = 'Select a folder';
+    document.getElementById('crumbs').textContent = '—';
+    document.getElementById('filesBody').innerHTML = '';
+    document.getElementById('filesFoot').innerHTML = '';
+  }
+
+  document.getElementById('docs-updated').textContent = 'Loaded ' + new Date().toLocaleString();
+}
     // ===== render: interests =====
     function renderInterests(payload){
       const table = document.getElementById('interests-table');
@@ -1039,3 +1071,4 @@
   </script>
 </body>
 </html>
+
