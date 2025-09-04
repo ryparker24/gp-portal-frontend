@@ -135,8 +135,8 @@
       margin: 0;
       padding: 0;
     }
-    
-/* Make folder rows match the left nav look */
+        
+    /* Make folder rows match the left nav look */
     #folder-pane .nav-item {
       display: flex;
       align-items: center;
@@ -146,8 +146,12 @@
       border-radius: 10px;
       color: #2a4b8d;
       font-weight: 500;
-      font-size: 1.5rem;  /* 👈 bump this up (try 1rem, 1.05rem, or 1.1rem) */
     }
+    
+    #folder-pane .nav-item .label {
+      font-size: 1.1rem;  /* 👈 larger labels */
+    }
+    
     #folder-pane .nav-item:hover { background: #f6f9ff; }
     #folder-pane .nav-item.active { background: #eef3ff; }
     
@@ -1084,9 +1088,3 @@ function renderDocuments(docs){
   </script>
 </body>
 </html>
-
-
-
-
-
-
