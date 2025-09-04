@@ -538,28 +538,6 @@
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
-    }
-      addRow('Start',               f => f.startDate);
-      addRow('Fund Size',           f => parseMoney(f.fundSize), { money0Cells:true });
-      addRow('GP Commitment',       f => parseMoney(f.gpCommit), { money0Cells:true });
-      addRow('Your interest in GP', f => f.interestPctDisplay);
-      addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
-      addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
-      addRow('Subtotal', f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)), { moneyCells:true, sumTotal:true, bold:true });
-      // New rows fed by API fields on each fund
-      addRow('Distributions', 'distributions', { moneyCells:true, sumTotal:true });
-      addRow(
-        'Adjusted Total',
-        f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0) - Number(f.distributions||0)),
-        { moneyCells:true, sumTotal:true, bold:true }
-      );
-      const fmt = n => n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-      const dist = portalData.distributionsByFund || {};
-      setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
-      updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
-      const signedAs = document.getElementById('signedAs');
-      if (signedAs && payload.actingAs && payload.actingAs !== payload.email) { signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`; }
-    }
     async function loadInterests(){
       const [data, currBal] = await Promise.all([ apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()), getCurrentBalance() ]);
       data.currentBalance = currBal; renderInterests(data);
@@ -936,6 +914,7 @@
   </script>
 </body>
 </html>
+
 
 
 
