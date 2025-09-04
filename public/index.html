@@ -486,7 +486,10 @@
         const values = funds.map(f => {
           const vRaw = (typeof field === 'function') ? field(f) : f[field];
           if (raw)       return safe(vRaw ?? '—');
-          if (moneyCells) return `$${moneyFmt(Number(vRaw || 0))}`;
+          if (moneyCells) {
+            const base = `$${moneyFmt(Number(vRaw || 0))}`;
+            return (options.format ? options.format(base) : base);
+          }
           return safe(vRaw ?? '—');
         });
     
@@ -517,7 +520,12 @@
       addRow('Subtotal', f => Number(f.employeeContrib||0) + Number(f.employerContrib||0), { moneyCells:true, sumTotal:true, bold:true });
     
       // New: Distributions & Adjusted Total — read straight from server payload
-      addRow('Distributions', f => Number(f.distributions || 0), { moneyCells:true, sumTotal:true });
+      addRow('Distributions', f => Number(f.distributions || 0), {
+        moneyCells:true,
+        sumTotal:true,
+        // custom render: format as (x,xxx.xx)
+        format: (val) => `(${val})`
+      });
       addRow('Adjusted Total',
             f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
             { moneyCells:true, sumTotal:true, bold:true });
@@ -930,6 +938,7 @@
   </script>
 </body>
 </html>
+
 
 
 
