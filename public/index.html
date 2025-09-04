@@ -98,7 +98,7 @@
 
     /* ===== Documents: two-level tree ===== */
     .doc-layout { display:grid; grid-template-columns: 320px 1fr; gap:12px; }
-    .doc-tree, .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
+    .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
     .doc-files { padding:0; border:1px solid var(--border); overflow:auto; }
 
     .files-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eef2fb; }
@@ -136,13 +136,21 @@
       padding: 0;
     }
     
+/* Make folder rows match the left nav look */
     #folder-pane .nav-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
       text-decoration: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: #2a4b8d;
+      font-weight: 500;
     }
+    #folder-pane .nav-item:hover { background: #f6f9ff; }
+    #folder-pane .nav-item.active { background: #eef3ff; }
     
+        
     /* badge count pill */
     #folder-pane .nav-item .badge {
       font-size: 12px;
@@ -159,6 +167,13 @@
       color: #fff;
       opacity: 1;
     }
+  .card-header {
+    font-weight: 700;
+    font-size: 13px;
+    color: #2a4b8d;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eef2fb;
+  }
   </style>
 </head>
 <body>
@@ -571,9 +586,6 @@ function loadFolder(typeKey){
       document.getElementById('kpi-right-value').textContent = String(files.length);
       document.getElementById('kpi-right-sub').textContent   = `${type} • ${year}`;
     }
-
-    // ===== render: documents (build tree) =====
-    let __allDocs = [];
    
     // ===== render: documents (build folder list on the left, files on the right) =====
 let __allDocs = [];
@@ -1071,4 +1083,5 @@ function renderDocuments(docs){
   </script>
 </body>
 </html>
+
 
