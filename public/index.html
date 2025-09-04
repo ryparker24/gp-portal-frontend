@@ -128,6 +128,11 @@
       .bank-grid { grid-template-columns: 1fr; }
       .imp-panel { width:calc(100vw - 32px); right:0; }
     }
+    tr.final-total td {
+      font-weight: 800 !important;   /* bolder than subtotal */
+      border-top: 4px solid #000;    /* thick black bar */
+    }
+
   </style>
 </head>
 <body>
@@ -403,7 +408,7 @@
         for (const r of list) {
           running += r.net;
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
+        tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
           tb.appendChild(tr);
         }
         const sub = list.reduce((a, x) => a + x.net, 0);
@@ -454,91 +459,94 @@
 
     // ===== render: interests =====
     function renderInterests(payload){
-      const table = document.getElementById('interests-table');
-      const thead = table.querySelector('thead');
-      const tbody = table.querySelector('tbody');
-      const tfoot = table.querySelector('tfoot');
-      const updEl = document.getElementById('interests-updated');
-    
-      thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = ''; updEl.textContent = '';
-      if (!payload || !Array.isArray(payload.funds)) { setStatus('Unable to load interests.'); return; }
-    
-      const funds = (payload.funds || []).filter(f => (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0);
-      const memberBalanceOutstanding = Number(payload.currentBalance || 0);
-      const moneyFmt = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
-      if (!funds.length){
-        tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
-        setCapitalCallsKpi(0, memberBalanceOutstanding);
-        updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
-        return;
+  const table = document.getElementById('interests-table');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  const tfoot = table.querySelector('tfoot');
+  const updEl = document.getElementById('interests-updated');
+
+  thead.innerHTML = ''; tbody.innerHTML = ''; tfoot.innerHTML = ''; updEl.textContent = '';
+  if (!payload || !Array.isArray(payload.funds)) { setStatus('Unable to load interests.'); return; }
+
+  const funds = (payload.funds || []).filter(f => (typeof f.interestFrac === 'number' ? f.interestFrac : 0) > 0);
+  const memberBalanceOutstanding = Number(payload.currentBalance || 0);
+  const moneyFmt = n => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (!funds.length){
+    tbody.innerHTML = `<tr><td class="sub">No positions found for your account.</td></tr>`;
+    setCapitalCallsKpi(0, memberBalanceOutstanding);
+    updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+    return;
+  }
+
+  // Header
+  thead.innerHTML = `
+    <tr>
+      <th></th>
+      ${funds.map(f => `<th class="num">${safe(f.fund)}</th>`).join('')}
+      <th class="num">Total</th>
+    </tr>`;
+
+  function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false, raw=false, format=null } = {}){
+    const values = funds.map(f => {
+      const vRaw = (typeof field === 'function') ? field(f) : f[field];
+      if (raw) return safe(vRaw ?? '—');
+      if (moneyCells) {
+        const base = `$${moneyFmt(Number(vRaw || 0))}`;
+        return format ? format(base) : base;
       }
-    
-      // Header
-      thead.innerHTML = `
-        <tr>
-          <th></th>
-          ${funds.map(f => `<th class="num">${safe(f.fund)}</th>`).join('')}
-          <th class="num">Total</th>
-        </tr>`;
-    
-      function addRow(label, field, { moneyCells=false, sumTotal=false, bold=false, raw=false, format=null } = {}){
-        const values = funds.map(f => {
-          const vRaw = (typeof field === 'function') ? field(f) : f[field];
-          if (raw)       return safe(vRaw ?? '—');
-          if (moneyCells) {
-            const base = `$${moneyFmt(Number(vRaw || 0))}`;
-            return format ? format(base) : base;
-          }
-          return safe(vRaw ?? '—');
-        });
-    
-              let totalCell = '—';
-      if (sumTotal){
-        const total = funds.reduce((a,f)=>{
-          const vRaw = (typeof field === 'function') ? field(f) : f[field];
-          return a + Number(vRaw || 0);
-        }, 0);
-        const baseTotal = `$${moneyFmt(total)}`;
-        totalCell = format ? format(baseTotal) : baseTotal;
-      }   
-        const cls = bold ? ' style="font-weight:700;"' : '';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
-        tbody.appendChild(tr);
-      }
-    
-      // Rows
-      addRow('Start',               f => f.startDate, { raw:true });
-      addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:true });
-      addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:true });
-      addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
-      addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
-      addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
-      addRow('Subtotal',
-            f => Number(f.employeeContrib||0) + Number(f.employerContrib||0),
-            { moneyCells:true, sumTotal:true, bold:true });
-    
-      // Distributions (shown in parentheses) & Adjusted Total
-      addRow('Distributions',
-            f => Number(f.distributions || 0),
-            { moneyCells:true, sumTotal:true, format: (val) => `(${val})` });
-    
-      addRow('Adjusted Total',
-            f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
-            { moneyCells:true, sumTotal:true, bold:true });
-    
-      // KPI on the right
-      const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
-      setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
-    
-      updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
-    
-      const signedAs = document.getElementById('signedAs');
-      if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
-        signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
-      }
+      return safe(vRaw ?? '—');
+    });
+
+    let totalCell = '—';
+    if (sumTotal){
+      const total = funds.reduce((a,f)=>{
+        const vRaw = (typeof field === 'function') ? field(f) : f[field];
+        return a + Number(vRaw || 0);
+      }, 0);
+      const baseTotal = `$${moneyFmt(total)}`;
+      totalCell = format ? format(baseTotal) : baseTotal;
     }
+
+    const tr = document.createElement('tr');
+    if (label === 'Adjusted Total') tr.className = 'final-total'; // <- thick black border + bold via CSS
+    const cls = bold ? ' style="font-weight:700;"' : '';
+    tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Rows
+  addRow('Start',               f => f.startDate, { raw:true });
+  addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:true });
+  addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:true });
+  addRow('Your interest in GP', f => f.interestPctDisplay,   { raw:true });
+  addRow('Contributions (Employee)', 'employeeContrib', { moneyCells:true, sumTotal:true });
+  addRow('Contributions (Employer)', 'employerContrib', { moneyCells:true, sumTotal:true });
+  addRow('Subtotal',
+        f => Number(f.employeeContrib||0) + Number(f.employerContrib||0),
+        { moneyCells:true, sumTotal:true, bold:true });
+
+  // Distributions in parentheses
+  addRow('Distributions',
+        f => Number(f.distributions || 0),
+        { moneyCells:true, sumTotal:true, format: (val) => `(${val})` });
+
+  // Final row
+  addRow('Adjusted Total',
+        f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
+        { moneyCells:true, sumTotal:true, bold:true });
+
+  // KPI on the right
+  const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
+  setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
+
+  updEl.textContent = 'Loaded ' + new Date(payload.updated || Date.now()).toLocaleString();
+
+  const signedAs = document.getElementById('signedAs');
+  if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
+    signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
+  }
+}
       async function loadInterests(){
       const [data, currBal] = await Promise.all([ apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()), getCurrentBalance() ]);
       data.currentBalance = currBal; renderInterests(data);
@@ -915,6 +923,7 @@
   </script>
 </body>
 </html>
+
 
 
 
