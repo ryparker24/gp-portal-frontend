@@ -493,15 +493,15 @@
           return safe(vRaw ?? '—');
         });
     
-        let totalCell = '—';
-        if (sumTotal){
-          const total = funds.reduce((a,f)=>{
-            const vRaw = (typeof field === 'function') ? field(f) : f[field];
-            return a + Number(vRaw || 0);
-          }, 0);
-          totalCell = `$${moneyFmt(total)}`;
-        }
-    
+              let totalCell = '—';
+      if (sumTotal){
+        const total = funds.reduce((a,f)=>{
+          const vRaw = (typeof field === 'function') ? field(f) : f[field];
+          return a + Number(vRaw || 0);
+        }, 0);
+        const baseTotal = `$${moneyFmt(total)}`;
+        totalCell = format ? format(baseTotal) : baseTotal;
+      }   
         const cls = bold ? ' style="font-weight:700;"' : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `<td${cls}>${safe(label)}</td>${values.map(v => `<td class="num">${v}</td>`).join('')}<td class="num">${totalCell}</td>`;
@@ -538,7 +538,8 @@
       if (signedAs && payload.actingAs && payload.actingAs !== payload.email) {
         signedAs.textContent = `Acting as ${payload.actingAs} (admin: ${payload.email})`;
       }
-    async function loadInterests(){
+    }
+      async function loadInterests(){
       const [data, currBal] = await Promise.all([ apiPost('/api/list-interests', { ...adminBody() }, adminHeaders()), getCurrentBalance() ]);
       data.currentBalance = currBal; renderInterests(data);
     }
@@ -914,6 +915,7 @@
   </script>
 </body>
 </html>
+
 
 
 
