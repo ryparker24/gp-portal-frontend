@@ -172,13 +172,13 @@
       color: #fff;
       opacity: 1;
     }
-  .card-header {
-    font-weight: 700;
-    font-size: 13px;
-    color: #2a4b8d;
-    padding: 10px 12px;
-    border-bottom: 1px solid #eef2fb;
-      }
+    .card-header {
+      font-weight: 700;
+      font-size: 14px;   /* was 13px */
+      color: #2a4b8d;
+      padding: 10px 12px;
+      border-bottom: 1px solid #eef2fb;
+    }
         /* === Folder tree (Type → Years) === */
     #folder-pane .group {
       margin: 4px 0;
@@ -246,6 +246,15 @@
       transition: transform .15s ease;
     }
     #folder-pane .group.open .caret { transform: rotate(90deg); }
+     /* bump the font size of the Type (carat) row label */
+    #folder-pane .group-toggle .label {
+      font-size: 1.15rem;   /* tweak to taste */
+    }
+    
+    /* bump the font size of each Year row label */
+    #folder-pane .year-item .label {
+      font-size: 1.05rem;   /* tweak to taste */
+    }
   </style>
 </head>
 <body>
@@ -1174,4 +1183,5 @@ function renderDocuments(docs){
   </script>
 </body>
 </html>
+
 
