@@ -127,7 +127,7 @@
       font-weight: 800 !important;
       border-top: 4px solid #000;
     }
-        /* Folder pane matches sidebar look */
+    /* Folder pane matches sidebar look */
     #folder-pane .nav-list {
       display: flex;
       flex-direction: column;
@@ -149,13 +149,12 @@
     }
     
     #folder-pane .nav-item .label {
-      font-size: 1.1rem;  /* 👈 larger labels */
+      font-size: 1.1rem;
     }
     
     #folder-pane .nav-item:hover { background: #f6f9ff; }
     #folder-pane .nav-item.active { background: #eef3ff; }
     
-        
     /* badge count pill */
     #folder-pane .nav-item .badge {
       font-size: 14px;
@@ -174,12 +173,13 @@
     }
     .card-header {
       font-weight: 700;
-      font-size: 14px;   /* was 13px */
+      font-size: 14px;
       color: #2a4b8d;
       padding: 10px 12px;
       border-bottom: 1px solid #eef2fb;
     }
-        /* === Folder tree (Type → Years) === */
+
+    /* === Folder tree (Type → Years) === */
     #folder-pane .group {
       margin: 4px 0;
     }
@@ -192,7 +192,7 @@
       border-radius: 10px;
       text-decoration: none;
       color: #2a4b8d;
-      font-weight: 600;           /* Type label heavier */
+      font-weight: 600;
       cursor: pointer;
     }
     
@@ -226,7 +226,7 @@
     #folder-pane .year-item.active { background:#eef3ff; }
     
     #folder-pane .badge {
-      font-size: 12px;           /* keep badges tidy */
+      font-size: 12px;
       line-height: 1;
       padding: 3px 8px;
       border-radius: 999px;
@@ -240,20 +240,20 @@
       opacity: 1;
     }
     
-    /* optional: caret */
     #folder-pane .caret {
       margin-right: 8px;
       transition: transform .15s ease;
     }
     #folder-pane .group.open .caret { transform: rotate(90deg); }
-     /* bump the font size of the Type (carat) row label */
+
+    /* bump the font size of the Type (caret) row label */
     #folder-pane .group-toggle .label {
-      font-size: 1.15rem;   /* tweak to taste */
+      font-size: 1.15rem;
     }
     
     /* bump the font size of each Year row label */
     #folder-pane .year-item .label {
-      font-size: 1.05rem;   /* tweak to taste */
+      font-size: 1.05rem;
     }
   </style>
 </head>
@@ -268,6 +268,7 @@
       <nav class="nav">
         <a href="#/interests"     id="linkInterests">GP Interests</a>
         <a href="#/transactions"  id="linkTx" class="active">Member Outstanding Balance</a>
+        <a href="#/dec-2025"      id="linkDec2025">Dec-2025 Balances</a>
         <a href="#/documents"     id="linkDocs">Documents</a>
         <a href="#/wire"          id="linkWire">Wire Instructions</a>
       </nav>
@@ -386,6 +387,27 @@
           <div style="overflow:auto; margin-top:6px;">
             <table id="interests-table">
               <thead></thead>
+              <tbody></tbody>
+              <tfoot></tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dec-2025 Balances -->
+        <div id="card-dec2025" class="card hidden" style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:16px;">Dec-2025 Balances</h3>
+            <div id="dec2025-updated" class="sub"></div>
+          </div>
+          <div style="overflow:auto; margin-top:6px;">
+            <table id="dec2025-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th class="num" style="width:140px;">Amount</th>
+                </tr>
+              </thead>
               <tbody></tbody>
               <tfoot></tfoot>
             </table>
@@ -556,95 +578,145 @@
           : `Signed in as ${data.email}`;
       }
     }
-// Build a two-level tree: Type → Years
-function renderFolderTree(byType, selected = { type: null, year: null }) {
-  const host = document.getElementById('doc-folders');
-  host.innerHTML = '';
 
-  // Default selected: first type, newest year
-  const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
-  if (!selected.type && types.length) {
-    selected.type = types[0];
-  }
-  if (selected.type && !selected.year) {
-    const years = Array.from(byType.get(selected.type).keys()).sort((a,b)=> b.localeCompare(a));
-    selected.year = years[0] || null;
-  }
+    // ===== render: Dec-2025 Balances =====
+    function renderDec2025Balances(data){
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+      const userEmail = (data.actingAs || data.email || '').toLowerCase();
 
-  for (const type of types) {
-    const yearsMap = byType.get(type);
-    const years = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a));
-    const typeTotal = years.reduce((a,y)=> a + (yearsMap.get(y)?.length || 0), 0);
+      const mine = rows.filter(r =>
+        String(r.Member_Email || '').toLowerCase() === userEmail
+      );
 
-    const group = document.createElement('div');
-    group.className = 'group' + (type === selected.type ? ' open' : '');
+      const memberName = (mine[0] && mine[0].Member_Name) || data.memberName || '';
+      const total = mine.reduce((sum, r) => sum + parseMoney(r.Amount), 0);
 
-    // Type row (toggle)
-    const toggle = document.createElement('div');
-    toggle.className = 'group-toggle';
-    toggle.setAttribute('role','button');
-    toggle.setAttribute('tabindex','0');
-    toggle.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="caret">▶</span>
-        <span class="label">${safe(type)}</span>
-      </div>
-      <span class="badge">${typeTotal}</span>
-    `;
-    toggle.addEventListener('click', () => {
-      group.classList.toggle('open');
-    });
+      document.getElementById('kpi-name').textContent  = memberName || '—';
+      document.getElementById('kpi-email').textContent = data.actingAs || data.email || '—';
+      document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
+      document.getElementById('kpi-right-value').textContent = money(total);
+      document.getElementById('kpi-right-sub').textContent   = `${mine.length} rows`;
 
-    // Years list
-    const yearsWrap = document.createElement('div');
-    yearsWrap.className = 'years';
+      const tbody = document.querySelector('#dec2025-table tbody');
+      const tfoot = document.querySelector('#dec2025-table tfoot');
+      tbody.innerHTML = '';
+      tfoot.innerHTML = '';
 
-    for (const year of years) {
-      const count = (yearsMap.get(year) || []).length;
-      const a = document.createElement('a');
-      a.href = '#';
-      a.className = 'year-item' + ((type === selected.type && year === selected.year) ? ' active' : '');
-      a.dataset.type = type;
-      a.dataset.year = year;
-      a.innerHTML = `
-        <span class="label">${safe(year)}</span>
-        <span class="badge">${count}</span>
-      `;
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
+      if (!mine.length){
+        tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
+      } else {
+        for (const r of mine){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${safe(r.Item || '')}</td>
+            <td>${safe(r.Description || '')}</td>
+            <td class="num">${money(parseMoney(r.Amount))}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+        const totRow = document.createElement('tr');
+        totRow.className = 'grand';
+        totRow.innerHTML = `
+          <td></td>
+          <td><strong>Total</strong></td>
+          <td class="num"><strong>${money(total)}</strong></td>
+        `;
+        tfoot.appendChild(totRow);
+      }
 
-        // update visual active state
-        host.querySelectorAll('.year-item').forEach(n => n.classList.remove('active'));
-        a.classList.add('active');
-
-        // show files for that Type+Year
-        const files = yearsMap.get(year) || [];
-        showFiles(type, year, files);
-      });
-
-      yearsWrap.appendChild(a);
+      if (data.updated){
+        document.getElementById('dec2025-updated').textContent =
+          'Updated ' + new Date(data.updated).toLocaleString();
+      }
     }
 
-    group.appendChild(toggle);
-    group.appendChild(yearsWrap);
-    host.appendChild(group);
-  }
+    async function loadDec2025Balances(){
+      const data = await apiPost('/api/list-dec-2025-balances', { ...adminBody() }, adminHeaders());
+      renderDec2025Balances(data);
+    }
 
-  // Initial show for the selected pair
-  if (selected.type && selected.year) {
-    const files = byType.get(selected.type)?.get(selected.year) || [];
-    showFiles(selected.type, selected.year, files);
-  } else {
-    document.getElementById('filesTitle').textContent = 'Select a folder';
-    document.getElementById('crumbs').textContent = '—';
-    document.getElementById('filesBody').innerHTML = '';
-    document.getElementById('filesFoot').innerHTML = '';
-  }
-}
+    // Build a two-level tree: Type → Years
+    function renderFolderTree(byType, selected = { type: null, year: null }) {
+      const host = document.getElementById('doc-folders');
+      host.innerHTML = '';
+
+      const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
+      if (!selected.type && types.length) {
+        selected.type = types[0];
+      }
+      if (selected.type && !selected.year) {
+        const years = Array.from(byType.get(selected.type).keys()).sort((a,b)=> b.localeCompare(a));
+        selected.year = years[0] || null;
+      }
+
+      for (const type of types) {
+        const yearsMap = byType.get(type);
+        const years = Array.from(yearsMap.keys()).sort((a,b)=> b.localeCompare(a));
+        const typeTotal = years.reduce((a,y)=> a + (yearsMap.get(y)?.length || 0), 0);
+
+        const group = document.createElement('div');
+        group.className = 'group' + (type === selected.type ? ' open' : '');
+
+        const toggle = document.createElement('div');
+        toggle.className = 'group-toggle';
+        toggle.setAttribute('role','button');
+        toggle.setAttribute('tabindex','0');
+        toggle.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="caret">▶</span>
+            <span class="label">${safe(type)}</span>
+          </div>
+          <span class="badge">${typeTotal}</span>
+        `;
+        toggle.addEventListener('click', () => {
+          group.classList.toggle('open');
+        });
+
+        const yearsWrap = document.createElement('div');
+        yearsWrap.className = 'years';
+
+        for (const year of years) {
+          const count = (yearsMap.get(year) || []).length;
+          const a = document.createElement('a');
+          a.href = '#';
+          a.className = 'year-item' + ((type === selected.type && year === selected.year) ? ' active' : '');
+          a.dataset.type = type;
+          a.dataset.year = year;
+          a.innerHTML = `
+            <span class="label">${safe(year)}</span>
+            <span class="badge">${count}</span>
+          `;
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            host.querySelectorAll('.year-item').forEach(n => n.classList.remove('active'));
+            a.classList.add('active');
+
+            const files = yearsMap.get(year) || [];
+            showFiles(type, year, files);
+          });
+
+          yearsWrap.appendChild(a);
+        }
+
+        group.appendChild(toggle);
+        group.appendChild(yearsWrap);
+        host.appendChild(group);
+      }
+
+      if (selected.type && selected.year) {
+        const files = byType.get(selected.type)?.get(selected.year) || [];
+        showFiles(selected.type, selected.year, files);
+      } else {
+        document.getElementById('filesTitle').textContent = 'Select a folder';
+        document.getElementById('crumbs').textContent = '—';
+        document.getElementById('filesBody').innerHTML = '';
+        document.getElementById('filesFoot').innerHTML = '';
+      }
+    }
 
     // ===== two-level folder helpers for Documents =====
     function groupDocsByTypeYear(docs){
-      // Returns: Map<Type, Map<Year, Array<doc>>>
       const byType = new Map();
       for (const d of (docs || [])){
         const type = String(d.Doc_Type || 'Other').trim() || 'Other';
@@ -654,7 +726,6 @@ function renderFolderTree(byType, selected = { type: null, year: null }) {
         if (!byYear.has(year)) byYear.set(year, []);
         byYear.get(year).push(d);
       }
-      // sort docs within each year by ModifiedTime desc
       for (const [, byYear] of byType){
         for (const [, arr] of byYear){
           arr.sort((a,b)=> (new Date(b.ModifiedTime||0)) - (new Date(a.ModifiedTime||0)));
@@ -704,27 +775,24 @@ function renderFolderTree(byType, selected = { type: null, year: null }) {
       document.getElementById('kpi-right-sub').textContent   = `${type} • ${year}`;
     }
    
-    // ===== render: documents (build folder list on the left, files on the right) =====
-let __allDocs = [];
-function renderDocuments(docs){
-  __allDocs = Array.isArray(docs) ? docs : [];
+    // ===== render: documents =====
+    let __allDocs = [];
+    function renderDocuments(docs){
+      __allDocs = Array.isArray(docs) ? docs : [];
 
-  // Group by Type → Year
-  const byType = groupDocsByTypeYear(__allDocs);
-  window.__docsByType = byType;
+      const byType = groupDocsByTypeYear(__allDocs);
+      window.__docsByType = byType;
 
-    // Build two-level folder tree from Type → Year
-    renderFolderTree(byType, { type: null, year: null });
-    
-    // KPI: total docs visible to user
-    const total = __allDocs.length;
-    document.getElementById('kpi-right-title').textContent = 'Documents';
-    document.getElementById('kpi-right-value').textContent = String(total);
-    document.getElementById('kpi-right-sub').textContent   = 'Total files';
-    
-    // (No need to auto-load manually; renderFolderTree handles initial selection)
-    document.getElementById('docs-updated').textContent = 'Loaded ' + new Date().toLocaleString();
-}
+      renderFolderTree(byType, { type: null, year: null });
+      
+      const total = __allDocs.length;
+      document.getElementById('kpi-right-title').textContent = 'Documents';
+      document.getElementById('kpi-right-value').textContent = String(total);
+      document.getElementById('kpi-right-sub').textContent   = 'Total files';
+      
+      document.getElementById('docs-updated').textContent = 'Loaded ' + new Date().toLocaleString();
+    }
+
     // ===== render: interests =====
     function renderInterests(payload){
       const table = document.getElementById('interests-table');
@@ -747,7 +815,6 @@ function renderDocuments(docs){
         return;
       }
 
-      // Header
       thead.innerHTML = `
         <tr>
           <th></th>
@@ -783,7 +850,6 @@ function renderDocuments(docs){
         tbody.appendChild(tr);
       }
 
-      // Rows
       addRow('Start',               f => f.startDate, { raw:true });
       addRow('Fund Size',           f => parseMoney(f.fundSize), { moneyCells:true, sumTotal:false });
       addRow('GP Commitment',       f => parseMoney(f.gpCommit), { moneyCells:true, sumTotal:false });
@@ -800,7 +866,6 @@ function renderDocuments(docs){
             f => (Number(f.employeeContrib||0) + Number(f.employerContrib||0)) - Number(f.distributions || 0),
             { moneyCells:true, sumTotal:true, bold:true });
 
-      // KPI on the right
       const capitalCalls = funds.reduce((a,f)=> a + Number(f.employeeContrib||0) + Number(f.employerContrib||0), 0);
       setCapitalCallsKpi(capitalCalls, memberBalanceOutstanding);
 
@@ -979,23 +1044,24 @@ function renderDocuments(docs){
 
     // ===== router =====
     function setRoute(hash){
-      const isDocs = (hash === '#/documents');
+      const isDocs      = (hash === '#/documents');
       const isInterests = (hash === '#/interests');
-      const isWire = (hash === '#/wire');
+      const isWire      = (hash === '#/wire');
+      const isDec2025   = (hash === '#/dec-2025');
+      const isTx        = !(isDocs || isInterests || isWire || isDec2025);
 
-      // show/hide cards
-      document.getElementById('card-tx').classList.toggle('hidden', isDocs || isInterests || isWire);
+      document.getElementById('card-tx').classList.toggle('hidden', !isTx);
       document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
       document.getElementById('card-interests').classList.toggle('hidden', !isInterests);
+      document.getElementById('card-dec2025').classList.toggle('hidden', !isDec2025);
       document.getElementById('card-wire').classList.toggle('hidden', !isWire);
 
-      // sidebar
-      document.getElementById('linkTx').classList.toggle('active', !(isDocs || isInterests || isWire));
+      document.getElementById('linkTx').classList.toggle('active', isTx);
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
       document.getElementById('linkInterests').classList.toggle('active', isInterests);
+      document.getElementById('linkDec2025').classList.toggle('active', isDec2025);
       document.getElementById('linkWire').classList.toggle('active', isWire);
 
-      // clear KPI right
       const kVal = document.getElementById('kpi-right-value');
       const kSub = document.getElementById('kpi-right-sub');
       if (kVal) kVal.textContent = '';
@@ -1010,6 +1076,9 @@ function renderDocuments(docs){
       } else if (isWire) {
         document.getElementById('kpi-right-title').textContent = 'Wire Scope';
         loadWire();
+      } else if (isDec2025) {
+        document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
+        loadDec2025Balances();
       } else {
         document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
         loadTransactions();
@@ -1019,29 +1088,33 @@ function renderDocuments(docs){
     window.addEventListener('hashchange', () => setRoute(location.hash));
 
     async function reloadActiveTab(){
-      const isDocs = (location.hash === '#/documents');
+      const isDocs      = (location.hash === '#/documents');
       const isInterests = (location.hash === '#/interests');
-      const isWire = (location.hash === '#/wire');
+      const isWire      = (location.hash === '#/wire');
+      const isDec2025   = (location.hash === '#/dec-2025');
       const impState = document.getElementById('imp-state');
 
       try{
-        if (isDocs)      await loadDocuments();
+        if (isDocs)           await loadDocuments();
         else if (isInterests) await loadInterests();
-        else if (isWire) await loadWire();
-        else             await loadTransactions();
+        else if (isWire)      await loadWire();
+        else if (isDec2025)   await loadDec2025Balances();
+        else                  await loadTransactions();
 
         setStatus('');
         if (impState) impState.textContent = (window.__admin?.actAs ? 'Impersonation ON' : 'Impersonation OFF');
       }catch(e){
         console.error(e);
         const msg = (e && e.message) ? e.message : 'Unknown error';
-        setStatus(`Error loading ${isDocs ? 'documents' : isInterests ? 'interests' : isWire ? 'wire instructions' : 'transactions'}: ${msg}`);
+        const what = isDocs ? 'documents' : isInterests ? 'interests' : isWire ? 'wire instructions' : isDec2025 ? 'Dec-2025 balances' : 'transactions';
+        setStatus(`Error loading ${what}: ${msg}`);
         if (impState) impState.textContent = `Error: ${msg}`;
         await new Promise(r => setTimeout(r, 400));
-        if (isDocs)      await loadDocuments();
+        if (isDocs)           await loadDocuments();
         else if (isInterests) await loadInterests();
-        else if (isWire) await loadWire();
-        else             await loadTransactions();
+        else if (isWire)      await loadWire();
+        else if (isDec2025)   await loadDec2025Balances();
+        else                  await loadTransactions();
       }
     }
 
@@ -1081,7 +1154,6 @@ function renderDocuments(docs){
         if (!location.hash) location.replace('#/transactions');
         await reloadActiveTab();
 
-        // optional warm
         Promise.resolve().then(()=>{
           loadDocuments().catch(()=>{});
           loadTransactions().catch(()=>{});
@@ -1134,7 +1206,7 @@ function renderDocuments(docs){
       async function startImpersonation(){
         window.__admin.actAs  = (iEmail.value || '').trim();
         window.__admin.reason = (iReason.value || '').trim();
-        window.__admin.token  = (iToken.value || '').trim(); // simple admin token (e.g., "page mill")
+        window.__admin.token  = (iToken.value || '').trim();
         if (!window.__admin.actAs || !window.__admin.token){
           state.textContent = 'Email and token required';
           return;
@@ -1159,7 +1231,6 @@ function renderDocuments(docs){
       startB.addEventListener('click', startImpersonation);
       stopB .addEventListener('click', stopImpersonation);
 
-      // initialize the topbar state on load
       applyImpersonationUI();
     })();
 
@@ -1167,6 +1238,7 @@ function renderDocuments(docs){
     document.getElementById('linkTx')       ?.addEventListener('click', () => location.hash = '#/transactions');
     document.getElementById('linkDocs')     ?.addEventListener('click', () => location.hash = '#/documents');
     document.getElementById('linkInterests')?.addEventListener('click', () => location.hash = '#/interests');
+    document.getElementById('linkDec2025')  ?.addEventListener('click', () => location.hash = '#/dec-2025');
     document.getElementById('linkWire')     ?.addEventListener('click', () => location.hash = '#/wire');
 
     // ===== boot =====
@@ -1183,5 +1255,3 @@ function renderDocuments(docs){
   </script>
 </body>
 </html>
-
-
