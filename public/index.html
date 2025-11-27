@@ -579,56 +579,63 @@
       }
     }
 
-    // ===== render: Dec-2025 Balances =====
-    function renderDec2025Balances(data){
-      const rows = Array.isArray(data.rows) ? data.rows : [];
-      const userEmail = (data.actingAs || data.email || '').toLowerCase();
+// ===== render: Dec-2025 Balances =====
+function renderDec2025Balances(data){
+  // Backend already filtered by email and returns `items`
+  const items = Array.isArray(data.items) ? data.items : [];
 
-      const mine = rows.filter(r =>
-        String(r.Member_Email || '').toLowerCase() === userEmail
-      );
+  // Try to pick a name from the first row's Raw, otherwise just use the email
+  let memberName = '';
+  if (items.length && items[0].Raw && items[0].Raw.Member_Name) {
+    memberName = String(items[0].Raw.Member_Name || '').trim();
+  }
 
-      const memberName = (mine[0] && mine[0].Member_Name) || data.memberName || '';
-      const total = mine.reduce((sum, r) => sum + parseMoney(r.Amount), 0);
+  const email = data.actingAs || data.email || '—';
 
-      document.getElementById('kpi-name').textContent  = memberName || '—';
-      document.getElementById('kpi-email').textContent = data.actingAs || data.email || '—';
-      document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
-      document.getElementById('kpi-right-value').textContent = money(total);
-      document.getElementById('kpi-right-sub').textContent   = `${mine.length} rows`;
+  // KPI header
+  document.getElementById('kpi-name').textContent  = memberName || email || '—';
+  document.getElementById('kpi-email').textContent = email;
+  document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
 
-      const tbody = document.querySelector('#dec2025-table tbody');
-      const tfoot = document.querySelector('#dec2025-table tfoot');
-      tbody.innerHTML = '';
-      tfoot.innerHTML = '';
+  // Sum the amounts (backend already parsed to numbers)
+  const total = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
+  document.getElementById('kpi-right-value').textContent = money(total);
+  document.getElementById('kpi-right-sub').textContent   = `${items.length} rows`;
 
-      if (!mine.length){
-        tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
-      } else {
-        for (const r of mine){
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${safe(r.Item || '')}</td>
-            <td>${safe(r.Description || '')}</td>
-            <td class="num">${money(parseMoney(r.Amount))}</td>
-          `;
-          tbody.appendChild(tr);
-        }
-        const totRow = document.createElement('tr');
-        totRow.className = 'grand';
-        totRow.innerHTML = `
-          <td></td>
-          <td><strong>Total</strong></td>
-          <td class="num"><strong>${money(total)}</strong></td>
-        `;
-        tfoot.appendChild(totRow);
-      }
+  const tbody = document.querySelector('#dec2025-table tbody');
+  const tfoot = document.querySelector('#dec2025-table tfoot');
+  tbody.innerHTML = '';
+  tfoot.innerHTML = '';
 
-      if (data.updated){
-        document.getElementById('dec2025-updated').textContent =
-          'Updated ' + new Date(data.updated).toLocaleString();
-      }
+  if (!items.length){
+    tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
+  } else {
+    for (const r of items){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${safe(r.Item || '')}</td>
+        <td>${safe(r.Description || '')}</td>
+        <td class="num">${money(Number(r.Amount || 0))}</td>
+      `;
+      tbody.appendChild(tr);
     }
+
+    const totRow = document.createElement('tr');
+    totRow.className = 'grand';
+    totRow.innerHTML = `
+      <td></td>
+      <td><strong>Total</strong></td>
+      <td class="num"><strong>${money(total)}</strong></td>
+    `;
+    tfoot.appendChild(totRow);
+  }
+
+  if (data.updated){
+    document.getElementById('dec2025-updated').textContent =
+      'Updated ' + new Date(data.updated).toLocaleString();
+  }
+}
+
 
     async function loadDec2025Balances(){
       const data = await apiPost('/api/list-dec-2025-balances', { ...adminBody() }, adminHeaders());
@@ -1255,3 +1262,4 @@
   </script>
 </body>
 </html>
+
