@@ -581,7 +581,6 @@
 
 // ===== render: Dec-2025 Balances =====
 function renderDec2025Balances(data){
-  // Backend already filtered by email and returns `items`
   const items = Array.isArray(data.items) ? data.items : [];
 
   // Try to pick a name from the first row's Raw, otherwise just use the email
@@ -599,7 +598,7 @@ function renderDec2025Balances(data){
   // KPI title (right)
   document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
 
-  // ---- NEW: compute two sums based on Item text ----
+  // ---- NEW: compute two sums based on Item text (case-insensitive) ----
   const includesCI = (text, needle) =>
     String(text || '').toLowerCase().includes(String(needle || '').toLowerCase());
 
@@ -611,11 +610,10 @@ function renderDec2025Balances(data){
     return includesCI(r.Item, 'pte') ? (sum + Number(r.Amount || 0)) : sum;
   }, 0);
 
-  // Optional: still keep "Total" for the table footer
+  // Optional: full total for the table footer
   const totalAll = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
 
-  // KPI right: show a clean 2-line breakdown (and avoid overwriting by setRoute)
-  // Use kpi-right-value as blank and put the summary in kpi-right-sub
+  // KPI right: show two-line breakdown
   document.getElementById('kpi-right-value').textContent = '';
   document.getElementById('kpi-right-sub').innerHTML = `
     <div class="kpi-rows">
@@ -624,7 +622,7 @@ function renderDec2025Balances(data){
     </div>
   `;
 
-  // ----- Table rendering (unchanged) -----
+  // ----- Table rendering -----
   const tbody = document.querySelector('#dec2025-table tbody');
   const tfoot = document.querySelector('#dec2025-table tfoot');
   tbody.innerHTML = '';
@@ -657,6 +655,12 @@ function renderDec2025Balances(data){
     document.getElementById('dec2025-updated').textContent =
       'Updated ' + new Date(data.updated).toLocaleString();
   }
+}
+
+// IMPORTANT: this loader MUST exist because setRoute() calls it
+async function loadDec2025Balances(){
+  const data = await apiPost('/api/list-dec-2025-balances', { ...adminBody() }, adminHeaders());
+  renderDec2025Balances(data);
 }
 
     // Build a two-level tree: Type → Years
@@ -1279,5 +1283,6 @@ function renderDec2025Balances(data){
   </script>
 </body>
 </html>
+
 
 
