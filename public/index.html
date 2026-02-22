@@ -579,11 +579,12 @@
       }
     }
 
-// ===== render: Dec-2025 Balances (2025 Earnings for Tax Estimates) =====
+// ===== render: Dec-2025 Balances =====
 function renderDec2025Balances(data){
+  // Backend already filtered by email and returns `items`
   const items = Array.isArray(data.items) ? data.items : [];
 
-  // ----- Member identity -----
+  // Try to pick a name from the first row's Raw, otherwise just use the email
   let memberName = '';
   if (items.length && items[0].Raw && items[0].Raw.Member_Name) {
     memberName = String(items[0].Raw.Member_Name || '').trim();
@@ -591,35 +592,31 @@ function renderDec2025Balances(data){
 
   const email = data.actingAs || data.email || '—';
 
+  // KPI header (left)
   document.getElementById('kpi-name').textContent  = memberName || email || '—';
   document.getElementById('kpi-email').textContent = email;
 
-  // ----- Case-insensitive matcher -----
-  const includesCI = (text, search) =>
-    String(text || '').toLowerCase().includes(search.toLowerCase());
+  // KPI title (right)
+  document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
 
-  // ----- Compute summary totals -----
+  // ---- NEW: compute two sums based on Item text ----
+  const includesCI = (text, needle) =>
+    String(text || '').toLowerCase().includes(String(needle || '').toLowerCase());
+
   const earningsTotal = items.reduce((sum, r) => {
-    if (includesCI(r.Item, 'earnings')) {
-      return sum + Number(r.Amount || 0);
-    }
-    return sum;
+    return includesCI(r.Item, 'earnings') ? (sum + Number(r.Amount || 0)) : sum;
   }, 0);
 
   const pteTotal = items.reduce((sum, r) => {
-    if (includesCI(r.Item, 'pte')) {
-      return sum + Number(r.Amount || 0);
-    }
-    return sum;
+    return includesCI(r.Item, 'pte') ? (sum + Number(r.Amount || 0)) : sum;
   }, 0);
 
-  // ----- KPI right summary -----
-  document.getElementById('kpi-right-title').textContent =
-    '2025 Earnings for Tax Estimates';
+  // Optional: still keep "Total" for the table footer
+  const totalAll = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
 
-  // Leave large value blank (intentional — summary shown below)
+  // KPI right: show a clean 2-line breakdown (and avoid overwriting by setRoute)
+  // Use kpi-right-value as blank and put the summary in kpi-right-sub
   document.getElementById('kpi-right-value').textContent = '';
-
   document.getElementById('kpi-right-sub').innerHTML = `
     <div class="kpi-rows">
       <div><strong>2025 Earnings</strong> — $${money(earningsTotal)}</div>
@@ -627,15 +624,14 @@ function renderDec2025Balances(data){
     </div>
   `;
 
-  // ----- Table rendering -----
+  // ----- Table rendering (unchanged) -----
   const tbody = document.querySelector('#dec2025-table tbody');
   const tfoot = document.querySelector('#dec2025-table tfoot');
   tbody.innerHTML = '';
   tfoot.innerHTML = '';
 
   if (!items.length){
-    tbody.innerHTML =
-      `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
+    tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
   } else {
     for (const r of items){
       const tr = document.createElement('tr');
@@ -646,12 +642,6 @@ function renderDec2025Balances(data){
       `;
       tbody.appendChild(tr);
     }
-
-    // Grand total (all rows)
-    const totalAll = items.reduce(
-      (sum, r) => sum + Number(r.Amount || 0),
-      0
-    );
 
     const totRow = document.createElement('tr');
     totRow.className = 'grand';
@@ -1289,4 +1279,5 @@ function renderDec2025Balances(data){
   </script>
 </body>
 </html>
+
 
