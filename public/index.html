@@ -268,7 +268,7 @@
       <nav class="nav">
         <a href="#/interests"     id="linkInterests">GP Interests</a>
         <a href="#/transactions"  id="linkTx" class="active">Member Outstanding Balance</a>
-        <a href="#/dec-2025"      id="linkDec2025">Dec-2025 Balances</a>
+        <a href="#/dec-2025"      id="linkDec2025">2025 Earnings for Tax Estimates</a>
         <a href="#/documents"     id="linkDocs">Documents</a>
         <a href="#/wire"          id="linkWire">Wire Instructions</a>
       </nav>
@@ -393,10 +393,10 @@
           </div>
         </div>
 
-        <!-- Dec-2025 Balances -->
+        <!-- 2025 Earnings for Tax Estimates (route/id remains dec-2025) -->
         <div id="card-dec2025" class="card hidden" style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:16px;">Dec-2025 Balances</h3>
+            <h3 style="margin:0;font-size:16px;">2025 Earnings for Tax Estimates</h3>
             <div id="dec2025-updated" class="sub"></div>
           </div>
           <div style="overflow:auto; margin-top:6px;">
@@ -579,63 +579,62 @@
       }
     }
 
-// ===== render: Dec-2025 Balances =====
-function renderDec2025Balances(data){
-  // Backend already filtered by email and returns `items`
-  const items = Array.isArray(data.items) ? data.items : [];
+    // ===== render: Dec-2025 Balances =====
+    function renderDec2025Balances(data){
+      // Backend already filtered by email and returns `items`
+      const items = Array.isArray(data.items) ? data.items : [];
 
-  // Try to pick a name from the first row's Raw, otherwise just use the email
-  let memberName = '';
-  if (items.length && items[0].Raw && items[0].Raw.Member_Name) {
-    memberName = String(items[0].Raw.Member_Name || '').trim();
-  }
+      // Try to pick a name from the first row's Raw, otherwise just use the email
+      let memberName = '';
+      if (items.length && items[0].Raw && items[0].Raw.Member_Name) {
+        memberName = String(items[0].Raw.Member_Name || '').trim();
+      }
 
-  const email = data.actingAs || data.email || '—';
+      const email = data.actingAs || data.email || '—';
 
-  // KPI header
-  document.getElementById('kpi-name').textContent  = memberName || email || '—';
-  document.getElementById('kpi-email').textContent = email;
-  document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
+      // KPI header
+      document.getElementById('kpi-name').textContent  = memberName || email || '—';
+      document.getElementById('kpi-email').textContent = email;
+      document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
 
-  // Sum the amounts (backend already parsed to numbers)
-  const total = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
-  document.getElementById('kpi-right-value').textContent = money(total);
-  document.getElementById('kpi-right-sub').textContent   = `${items.length} rows`;
+      // Sum the amounts (backend already parsed to numbers)
+      const total = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
+      document.getElementById('kpi-right-value').textContent = money(total);
+      document.getElementById('kpi-right-sub').textContent   = `${items.length} rows`;
 
-  const tbody = document.querySelector('#dec2025-table tbody');
-  const tfoot = document.querySelector('#dec2025-table tfoot');
-  tbody.innerHTML = '';
-  tfoot.innerHTML = '';
+      const tbody = document.querySelector('#dec2025-table tbody');
+      const tfoot = document.querySelector('#dec2025-table tfoot');
+      tbody.innerHTML = '';
+      tfoot.innerHTML = '';
 
-  if (!items.length){
-    tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
-  } else {
-    for (const r of items){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${safe(r.Item || '')}</td>
-        <td>${safe(r.Description || '')}</td>
-        <td class="num">${money(Number(r.Amount || 0))}</td>
-      `;
-      tbody.appendChild(tr);
+      if (!items.length){
+        tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
+      } else {
+        for (const r of items){
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${safe(r.Item || '')}</td>
+            <td>${safe(r.Description || '')}</td>
+            <td class="num">${money(Number(r.Amount || 0))}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+
+        const totRow = document.createElement('tr');
+        totRow.className = 'grand';
+        totRow.innerHTML = `
+          <td></td>
+          <td><strong>Total</strong></td>
+          <td class="num"><strong>${money(total)}</strong></td>
+        `;
+        tfoot.appendChild(totRow);
+      }
+
+      if (data.updated){
+        document.getElementById('dec2025-updated').textContent =
+          'Updated ' + new Date(data.updated).toLocaleString();
+      }
     }
-
-    const totRow = document.createElement('tr');
-    totRow.className = 'grand';
-    totRow.innerHTML = `
-      <td></td>
-      <td><strong>Total</strong></td>
-      <td class="num"><strong>${money(total)}</strong></td>
-    `;
-    tfoot.appendChild(totRow);
-  }
-
-  if (data.updated){
-    document.getElementById('dec2025-updated').textContent =
-      'Updated ' + new Date(data.updated).toLocaleString();
-  }
-}
-
 
     async function loadDec2025Balances(){
       const data = await apiPost('/api/list-dec-2025-balances', { ...adminBody() }, adminHeaders());
@@ -1084,7 +1083,7 @@ function renderDec2025Balances(data){
         document.getElementById('kpi-right-title').textContent = 'Wire Scope';
         loadWire();
       } else if (isDec2025) {
-        document.getElementById('kpi-right-title').textContent = 'Dec-2025 Balance';
+        document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
         loadDec2025Balances();
       } else {
         document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
@@ -1262,4 +1261,3 @@ function renderDec2025Balances(data){
   </script>
 </body>
 </html>
-
