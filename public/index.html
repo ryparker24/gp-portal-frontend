@@ -510,75 +510,137 @@
         </div>`;
     }
 
-    // ===== render: transactions =====
-    function renderTransactions(data){
-      if (!data || !Array.isArray(data.tx)) { setStatus('We could not determine your Google account. Make sure you open the link while signed in.'); return; }
-      setStatus('');
-      function localPickMemberName(rows, fallbackEmail){
-        const fields = ['Member_Name','MemberName','Name','Member'];
-        for (const f of fields){ const r = rows.find(x => x && x[f] && String(x[f]).trim()); if (r) return String(r[f]).trim(); }
-        const q = rows.find(x => x && x.QB_Account && String(x.QB_Account).includes('-'));
-        if (q){ const last = String(q.QB_Account).split('-').pop().trim(); if (last && /[A-Za-z]/.test(last)) return last; }
-        const local = String(fallbackEmail||'').split('@')[0].replace(/\+.*/,'').replace(/[._]/g,' ');
-        return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
-      }
-      const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
-      const memberEmail       = data.actingAs || data.email || '';
+// ===== render: transactions =====
+function renderTransactions(data){
+  if (!data || !Array.isArray(data.tx)) {
+    setStatus('We could not determine your Google account. Make sure you open the link while signed in.');
+    return;
+  }
+  setStatus('');
 
-      const rows = data.tx.map(r=>{
-        const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
-        const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
-        return { date: asDate(r.Date), dateText: r.Date || '', desc: r.Description || '', entity: r.EntityName || '—', net: netVal };
-      });
+  function localPickMemberName(rows, fallbackEmail){
+    const fields = ['Member_Name','MemberName','Name','Member'];
+    for (const f of fields){
+      const r = rows.find(x => x && x[f] && String(x[f]).trim());
+      if (r) return String(r[f]).trim();
+    }
+    const q = rows.find(x => x && x.QB_Account && String(x.QB_Account).includes('-'));
+    if (q){
+      const last = String(q.QB_Account).split('-').pop().trim();
+      if (last && /[A-Za-z]/.test(last)) return last;
+    }
+    const local = String(fallbackEmail||'')
+      .split('@')[0]
+      .replace(/\+.*/,'')
+      .replace(/[._]/g,' ');
+    return local ? local.replace(/\b\w/g, c => c.toUpperCase()) : 'Member';
+  }
 
-      const includedRows  = rows.filter(r => !excludedForTotals(r.entity));
-      const includedTotal = includedRows.reduce((a, r) => a + r.net, 0);
+  const memberDisplayName = localPickMemberName(data.tx, data.actingAs || data.email);
+  const memberEmail       = data.actingAs || data.email || '';
 
-      document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
-      document.getElementById('kpi-right-value').textContent = money(includedTotal);
-      document.getElementById('kpi-right-sub').textContent   = `${rows.length} rows`;
+  const rows = data.tx.map(r=>{
+    const hasNet = r.Net_Amount != null && String(r.Net_Amount).trim() !== '';
+    const netVal = hasNet ? parseMoney(r.Net_Amount) : (parseMoney(r.Credit) - parseMoney(r.Debit));
+    return {
+      date: asDate(r.Date),
+      dateText: r.Date || '',
+      desc: r.Description || '',
+      entity: r.EntityName || '—',
+      net: netVal
+    };
+  });
 
-      document.getElementById('kpi-name').textContent   = memberDisplayName || '—';
-      document.getElementById('kpi-email').textContent  = memberEmail || '—';
-      document.getElementById('updated').textContent    = 'Updated ' + new Date(data.updated).toLocaleString();
+  // --- compute totals by entity (respect EXCLUDED_TOTAL_ENTITIES for totals) ---
+  const byEntity = new Map();
+  for (const r of rows){
+    if (!byEntity.has(r.entity)) byEntity.set(r.entity, 0);
+    byEntity.set(r.entity, byEntity.get(r.entity) + r.net);
+  }
 
-      window.__currentBalance = includedTotal;
+  // Grand total for included entities only (same rule you already use)
+  const includedTotal = Array.from(byEntity.entries()).reduce((sum, [entity, amt]) => {
+    if (excludedForTotals(entity)) return sum;
+    return sum + amt;
+  }, 0);
 
-      const tb = document.querySelector('#tx tbody');
-      const tf = document.querySelector('#tx tfoot');
-      tb.innerHTML = ''; tf.innerHTML = '';
+  // --- KPI card (top right): show per-entity summary instead of a single number ---
+  document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
 
-      const groups = new Map();
-      for (const it of rows) { if (!groups.has(it.entity)) groups.set(it.entity, []); groups.get(it.entity).push(it); }
-      const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+  // You have two good options. Pick one:
+  // Option A (recommended): Show grand total as the big number + entity breakdown below.
+  document.getElementById('kpi-right-value').textContent = money(includedTotal);
 
-      for (const name of entityNames) {
-        const list = groups.get(name).sort((a,b)=> a.date - b.date);
-        const eh = document.createElement('tr'); eh.className = 'entity-hdr'; eh.innerHTML = `<td colspan="4">${safe(name)}</td>`; tb.appendChild(eh);
-        let running = 0;
-        for (const r of list) {
-          running += r.net;
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
-          tb.appendChild(tr);
-        }
-        const sub = list.reduce((a, x) => a + x.net, 0);
-        const st = document.createElement('tr'); st.className = 'subtotal';
-        st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(running)}</strong></td>`;
-        tb.appendChild(st);
-      }
-      const gt = document.createElement('tr'); gt.className = 'grand';
-      gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td>`;
-      tf.appendChild(gt);
+  // Build breakdown HTML (sorted by absolute magnitude, desc)
+  const entityLines = Array.from(byEntity.entries())
+    .filter(([entity]) => !excludedForTotals(entity))
+    .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .map(([entity, amt]) => `<div>${safe(entity)} — $${money(amt)}</div>`)
+    .join('');
 
-      const signedAs = document.getElementById('signedAs');
-      if (signedAs) {
-        signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
-          ? `Acting as ${data.actingAs} (admin: ${data.email})`
-          : `Signed in as ${data.email}`;
-      }
+  document.getElementById('kpi-right-sub').innerHTML = `
+    <div class="kpi-rows">
+      ${entityLines || '<div class="sub">No entity totals.</div>'}
+    </div>
+  `;
+
+  // Member card (left)
+  document.getElementById('kpi-name').textContent   = memberDisplayName || '—';
+  document.getElementById('kpi-email').textContent  = memberEmail || '—';
+  document.getElementById('updated').textContent    = 'Updated ' + new Date(data.updated).toLocaleString();
+
+  // Keep current balance consistent with your existing definition
+  window.__currentBalance = includedTotal;
+
+  // --- Table rendering (unchanged) ---
+  const tb = document.querySelector('#tx tbody');
+  const tf = document.querySelector('#tx tfoot');
+  tb.innerHTML = '';
+  tf.innerHTML = '';
+
+  const groups = new Map();
+  for (const it of rows) {
+    if (!groups.has(it.entity)) groups.set(it.entity, []);
+    groups.get(it.entity).push(it);
+  }
+  const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
+
+  for (const name of entityNames) {
+    const list = groups.get(name).sort((a,b)=> a.date - b.date);
+    const eh = document.createElement('tr');
+    eh.className = 'entity-hdr';
+    eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
+    tb.appendChild(eh);
+
+    let running = 0;
+    for (const r of list) {
+      running += r.net;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
+      tb.appendChild(tr);
     }
 
+    const sub = list.reduce((a, x) => a + x.net, 0);
+    const st = document.createElement('tr');
+    st.className = 'subtotal';
+    st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(running)}</strong></td>`;
+    tb.appendChild(st);
+  }
+
+  // Footer grand total (use includedTotal same as KPI)
+  const gt = document.createElement('tr');
+  gt.className = 'grand';
+  gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td>`;
+  tf.appendChild(gt);
+
+  // Signed-as label
+  const signedAs = document.getElementById('signedAs');
+  if (signedAs) {
+    signedAs.textContent = (data.actingAs && data.actingAs !== data.email)
+      ? `Acting as ${data.actingAs} (admin: ${data.email})`
+      : `Signed in as ${data.email}`;
+  }
+}
 // ===== render: Dec-2025 Balances =====
 function renderDec2025Balances(data){
   const items = Array.isArray(data.items) ? data.items : [];
@@ -1283,6 +1345,7 @@ async function loadDec2025Balances(){
   </script>
 </body>
 </html>
+
 
 
 
