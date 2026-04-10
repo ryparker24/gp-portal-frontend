@@ -1126,7 +1126,7 @@ async function loadDec2025Balances(){
       try{
         if (el) { el.classList.add('disabled'); el.textContent = 'Preparing…'; }
         const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
-        location.href = `/api/dl?token=${encodeURIComponent(token)}`;
+        location.href = `https://get-portal-data-468716163323.us-west3.run.app/api/dl?token=${encodeURIComponent(token)}`;
       }catch(e){ console.error(e); alert('Unable to download this file.'); }
       finally{
         if (el) { el.classList.remove('disabled'); el.textContent = 'Download'; }
