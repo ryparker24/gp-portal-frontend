@@ -100,6 +100,7 @@
     .doc-layout { display:grid; grid-template-columns: 320px 1fr; gap:12px; }
     .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
     .doc-files { padding:0; border:1px solid var(--border); overflow:auto; }
+    .doc-files.hidden { display:none; }
 
     .files-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eef2fb; }
     .files-title { font-size:14px; font-weight:700; color:#2a4b8d; }
@@ -113,6 +114,7 @@
 
     @media (max-width: 1100px){
       .doc-layout { grid-template-columns: 1fr; }
+      .doc-files:not(.hidden) { margin-top: 0; }
     }
 
     /* Responsive */
@@ -353,7 +355,7 @@
               <div class="card-header">Folders</div>
               <nav id="doc-folders" class="nav-list"></nav>
             </div>
-            <div class="doc-files">
+            <div class="doc-files hidden" id="doc-files-panel">
               <div class="files-head">
                 <div class="files-title" id="filesTitle">Select a folder</div>
                 <div class="crumbs" id="crumbs">—</div>
@@ -804,6 +806,8 @@ async function loadDec2025Balances(){
         document.getElementById('crumbs').textContent = '—';
         document.getElementById('filesBody').innerHTML = '';
         document.getElementById('filesFoot').innerHTML = '';
+        const panel = document.getElementById('doc-files-panel');
+        if (panel) panel.classList.add('hidden');
       }
     }
 
@@ -831,10 +835,12 @@ async function loadDec2025Balances(){
       const crumbs = document.getElementById('crumbs');
       const body = document.getElementById('filesBody');
       const foot = document.getElementById('filesFoot');
+      const panel = document.getElementById('doc-files-panel');
       title.textContent = `${type} — ${year}`;
       crumbs.textContent = `Documents / ${type} / ${year}`;
       body.innerHTML = '';
       foot.innerHTML = '';
+      if (panel) panel.classList.remove('hidden');
 
       if (!files || !files.length){
         body.innerHTML = `<tr><td class="sub" colspan="5">No files</td></tr>`;
