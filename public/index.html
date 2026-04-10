@@ -726,17 +726,19 @@ async function loadDec2025Balances(){
 }
 
     // Build a two-level tree: Type → Years
-    function renderFolderTree(byType, selected = { type: null, year: null }) {
+    function renderFolderTree(byType, selected = { type: null, year: null }, autoOpen = false) {
       const host = document.getElementById('doc-folders');
       host.innerHTML = '';
 
       const types = Array.from(byType.keys()).sort((a,b)=> a.localeCompare(b));
-      if (!selected.type && types.length) {
-        selected.type = types[0];
-      }
-      if (selected.type && !selected.year) {
-        const years = Array.from(byType.get(selected.type).keys()).sort((a,b)=> b.localeCompare(a));
-        selected.year = years[0] || null;
+      if (autoOpen) {
+        if (!selected.type && types.length) {
+          selected.type = types[0];
+        }
+        if (selected.type && !selected.year) {
+          const years = Array.from(byType.get(selected.type).keys()).sort((a,b)=> b.localeCompare(a));
+          selected.year = years[0] || null;
+        }
       }
 
       for (const type of types) {
@@ -794,7 +796,7 @@ async function loadDec2025Balances(){
         host.appendChild(group);
       }
 
-      if (selected.type && selected.year) {
+      if (autoOpen && selected.type && selected.year) {
         const files = byType.get(selected.type)?.get(selected.year) || [];
         showFiles(selected.type, selected.year, files);
       } else {
