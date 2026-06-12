@@ -856,7 +856,7 @@ async function loadDec2025Balances(){
           <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
           <td>
             <div class="file-actions">
-              ${r.ViewURL ? `<a class="link" href="${safe(r.ViewURL)}" target="_blank" rel="noopener">View</a>` : ''}
+              ${r.GoogleFileID ? `<a class="link view" data-fid="${safe(r.GoogleFileID)}">View</a>` : ''}
               ${r.GoogleFileID ? `<a class="link dl" data-fid="${safe(r.GoogleFileID)}">Download</a>` : ''}
             </div>
           </td>
@@ -1132,11 +1132,28 @@ async function loadDec2025Balances(){
         if (el) { el.classList.remove('disabled'); el.textContent = 'Download'; }
       }
     }
+    async function viewDoc(fileId, el){
+      try{
+        if (el) { el.classList.add('disabled'); el.textContent = 'Opening…'; }
+        const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
+        const url = `https://get-portal-data-468716163323.us-west3.run.app/api/dl?token=${encodeURIComponent(token)}&disp=inline`;
+        window.open(url, '_blank', 'noopener');
+      }catch(e){ console.error(e); alert('Unable to open this file.'); }
+      finally{
+        if (el) { el.classList.remove('disabled'); el.textContent = 'View'; }
+      }
+    }
     document.addEventListener('click', (e)=>{
       const dl = e.target.closest('.dl');
       if (dl && dl.hasAttribute('data-fid')){
         e.preventDefault();
         downloadDoc(dl.getAttribute('data-fid'), dl);
+        return;
+      }
+      const vw = e.target.closest('.view');
+      if (vw && vw.hasAttribute('data-fid')){
+        e.preventDefault();
+        viewDoc(vw.getAttribute('data-fid'), vw);
       }
     });
 
@@ -1353,8 +1370,3 @@ async function loadDec2025Balances(){
   </script>
 </body>
 </html>
-
-
-
-
-
