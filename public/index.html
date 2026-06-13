@@ -3,274 +3,193 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Faculty+Glyphic&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico">
-  <meta name="theme-color" content="#1E2B45">
+  <meta name="theme-color" content="#1D1C1C">
   <meta property="og:title" content="Allegis Portal">
   <meta property="og:description" content="Member transactions & documents">
   <meta property="og:image" content="https://portal.allegiscapital.com/og-card.png">
   <meta property="og:url" content="https://portal.allegiscapital.com">
   <style>
-    :root { --navy:#1E2B45; --red:#E94B3C; --muted:#f5f7fb; --ink:#222; --border:#e8edf7; --sidebar:#ffffff; }
-    * { box-sizing: border-box; }
-    body { font-family: Roboto, sans-serif; margin:0; background:var(--muted); color:var(--ink); }
+    :root{
+      --bg:#1D1C1C; --panel:#272727; --panel2:#363333; --line:#363333;
+      --ink:#FFFFFF; --muted:#A7A7A7; --muted2:#D9D9D9; --green:#45FE8C;
+      /* legacy aliases referenced by inline markup */
+      --navy:#1D1C1C; --red:#45FE8C; --border:#363333; --sidebar:#272727;
+    }
+    *{box-sizing:border-box;}
+    body{font-family:'Geist','Calibri',Arial,sans-serif; margin:0; background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased;}
 
     /* KPI sub-rows */
-    .kpi-rows{ font-size:16px; line-height:1.75; }
-    .kpi-rows div{ margin-top:2px; }
-    .kpi-rows a{ color:inherit; text-decoration:underline; cursor:pointer; }
+    .kpi-rows{font-size:15px; line-height:1.85;}
+    .kpi-rows div{margin-top:2px; padding-left:18px; position:relative;}
+    .kpi-rows div::before{content:"+"; position:absolute; left:0; color:var(--green); font-family:'Geist Mono',Consolas,monospace; font-weight:700;}
+    .kpi-rows a{color:inherit; text-decoration:none; border-bottom:1px solid rgba(69,254,140,.45); cursor:pointer;}
+    .kpi-rows a:hover{color:var(--green);}
 
     /* ===== Layout ===== */
-    .app { display:grid; grid-template-columns: 240px 1fr; min-height:100vh; }
-    .sidebar { background:var(--sidebar); border-right:1px solid var(--border); padding:16px 14px; position:sticky; top:0; height:100vh; overflow:auto; }
-    .content { padding: 16px 24px 24px 12px; }
-    .wrap { max-width:1100px; margin:0; }
-    .sidebar .brand-row { margin-bottom: 44px; }
+    .app{display:grid; grid-template-columns:248px 1fr; min-height:100vh;}
+    .sidebar{background:var(--panel); border-right:1px solid var(--line); padding:22px 16px; position:sticky; top:0; height:100vh; overflow:auto;}
+    .content{padding:22px 28px 28px 20px;}
+    .wrap{max-width:1100px; margin:0;}
+    .sidebar .brand-row{margin-bottom:40px;}
+
+    /* ===== Wordmark ===== */
+    .wordmark{font-family:'Faculty Glyphic','Geist',Arial,sans-serif; font-size:21px; letter-spacing:.16em; color:#fff; text-transform:uppercase; line-height:1.2;}
+    .wordmark small{display:block; font-family:'Geist Mono',Consolas,monospace; font-size:9px; letter-spacing:.34em; color:var(--muted); margin-top:8px;}
 
     /* ===== Header ===== */
-    .brand-block { margin-bottom: 8px; }
-    .brand-row { display:flex; align-items:center; gap:12px; }
-    .brand-row img { height:56px; }
-    .title-row { display:flex; align-items:flex-start; gap:12px; margin-top:8px; }
-    .title { font-size:28px; font-weight:700; color:var(--navy); }
-    .sub { color:#666; font-size:12px; }
+    .brand-block{margin-bottom:8px;}
+    .brand-row{display:flex; align-items:center; gap:12px;}
+    .title-row{display:flex; align-items:flex-start; gap:12px; margin-top:4px;}
+    .title{font-family:'Geist Mono',Consolas,monospace; font-size:26px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#fff;}
+    .title::after{content:"\2590"; color:var(--green); margin-left:1px; animation:blink 1.1s steps(1) infinite;}
+    @keyframes blink{50%{opacity:0;}}
+    .sub{color:var(--muted); font-size:12px; font-family:'Geist Mono',Consolas,monospace; letter-spacing:.02em;}
 
     /* ===== Top right status/controls ===== */
-    .topbar { margin-left:auto; display:flex; align-items:flex-start; gap:8px; position:relative; }
-    .statusline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    #status { color:#b00; min-height:16px; }
-    .kpi:empty { display:none; }
+    .topbar{margin-left:auto; display:flex; align-items:flex-start; gap:8px; position:relative;}
+    .statusline{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+    #status{color:var(--green); min-height:16px;}
+    .kpi:empty{display:none;}
 
     /* ===== Impersonation ===== */
-    .imp { position:relative; }
-    .imp-btn { background:#fff; border:1px solid #ccd6ee; border-radius:8px; padding:6px 10px; cursor:pointer; font-size:12px; }
-    .imp-panel { position:absolute; right:0; top:36px; z-index:10; background:#fff; border:1px solid #ccd6ee; border-radius:10px; padding:10px; box-shadow:0 6px 18px rgba(0,0,0,.12); width:520px; }
-    .imp-panel.hidden { display:none; }
-    .imp-row { display:flex; gap:8px; flex-wrap:wrap; }
-    .imp-panel input { padding:6px 8px; border:1px solid #dde3f5; border-radius:8px; min-width:160px; font-size:12px; }
-    .imp-panel button { padding:6px 10px; border:1px solid #dde3f5; border-radius:8px; background:#f5f7fb; cursor:pointer; font-size:12px; }
-    .imp-state { margin-left:8px; font-size:12px; color:#666; }
+    .imp{position:relative;}
+    .imp-btn{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:11px; color:var(--muted2); font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:.07em;}
+    .imp-btn:hover{border-color:var(--green); color:var(--green);}
+    .imp-panel{position:absolute; right:0; top:38px; z-index:10; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.55); width:520px;}
+    .imp-panel.hidden{display:none;}
+    .imp-row{display:flex; gap:8px; flex-wrap:wrap;}
+    .imp-panel input{padding:7px 9px; border:1px solid var(--line); border-radius:8px; min-width:160px; font-size:12px; background:#1D1C1C; color:#fff;}
+    .imp-panel input::placeholder{color:#6a6a6a;}
+    .imp-panel button{padding:7px 11px; border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--muted2); cursor:pointer; font-size:12px;}
+    .imp-panel button:hover{border-color:var(--green); color:var(--green);}
+    .imp-state{margin-left:8px; font-size:12px; color:var(--muted);}
 
     /* ===== Sidebar nav ===== */
-    .nav { display:flex; flex-direction:column; gap:6px; }
-    .nav a { display:block; padding:10px 12px; border-radius:10px; text-decoration:none; color:#2a4b8d; font-weight:500; }
-    .nav a.active { background:#eef3ff; text-decoration:none; }
+    .nav{display:flex; flex-direction:column; gap:4px;}
+    .nav a{display:block; padding:11px 14px; border-radius:10px; text-decoration:none; color:var(--muted); font-weight:500; font-size:14px; border-left:2px solid transparent;}
+    .nav a:hover{background:rgba(255,255,255,.04); color:#fff;}
+    .nav a.active{background:rgba(69,254,140,.10); color:var(--green); border-left:2px solid var(--green);}
 
     /* ===== Cards & grid ===== */
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    .card { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); padding:16px; }
-    .kpi { font-size:28px; font-weight:700; }
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 8px rgba(0,0,0,.35); padding:18px;}
+    .kpi{font-family:'Geist Mono',Consolas,monospace; font-size:30px; font-weight:700; color:#fff; letter-spacing:.01em;}
 
     /* ===== Tables ===== */
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:10px 8px; border-bottom:1px solid #eee; vertical-align:top; }
-    th { text-align:left; font-size:12px; color:#666; }
-    td.num { text-align:right; white-space:nowrap; }
-    tr.entity-hdr td { background:#f5f7fb; font-weight:700; border-top:2px solid var(--border); }
-    tr.subtotal td { font-weight:700; border-top:2px solid var(--border); }
-    tr.grand td { font-weight:800; border-top:3px solid #dbe4f3; }
+    table{width:100%; border-collapse:collapse;}
+    th,td{padding:11px 8px; border-bottom:1px solid var(--line); vertical-align:top;}
+    th{text-align:left; font-size:11px; color:var(--muted); font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:.08em; font-weight:500;}
+    td{font-size:14px; color:var(--muted2);}
+    td.num{text-align:right; white-space:nowrap; font-family:'Geist Mono',Consolas,monospace; color:#fff;}
+    tr.entity-hdr td{background:var(--panel2); font-weight:700; color:#fff; border-top:1px solid var(--line); text-transform:uppercase; font-family:'Geist Mono',monospace; font-size:12px; letter-spacing:.06em;}
+    tr.subtotal td{font-weight:700; color:#fff; border-top:1px solid var(--line);}
+    tr.grand td{font-weight:800; color:#fff; border-top:2px solid var(--green);}
 
-    .hidden { display:none !important; }
+    .hidden{display:none !important;}
+
+    h3{font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:.05em; color:#fff; font-size:15px;}
 
     /* ===== Wire cards ===== */
-    .bank-grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
-      margin-top:8px;
-      max-width: 760px;
-    }
-    .bank-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
-    .bank-card h4{ margin:0 0 6px 0; }
-    .rows-wrap{ display:grid; row-gap:2px; }
-    .rows{ display:flex; align-items:baseline; gap:8px; margin:0; }
-    .label{ white-space:nowrap; font-size:12px; color:#666; }
-    .label::after{ content: ":"; margin-left:2px; }
-    .value{
-      flex:1 1 auto; min-width:0;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size:13px; line-height:1.35;
-      overflow-wrap:anywhere; word-break:break-word;
-    }
-    .buttons{ flex:0 0 auto; display:flex; gap:6px; margin:0; }
-    .btn{ padding:2px 6px; font-size:11px; border:1px solid #dde3f5; background:#f5f7fb; border-radius:8px; cursor:pointer; }
-    .muted { color:#888; }
+    .bank-grid{display:grid; grid-template-columns:1fr; gap:12px; margin-top:8px; max-width:760px;}
+    .bank-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 1px 8px rgba(0,0,0,.35);}
+    .bank-card h4{margin:0 0 8px 0; font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--green);}
+    .rows-wrap{display:grid; row-gap:3px;}
+    .rows{display:flex; align-items:baseline; gap:8px; margin:0;}
+    .label{white-space:nowrap; font-size:12px; color:var(--muted);}
+    .label::after{content:":"; margin-left:2px;}
+    .value{flex:1 1 auto; min-width:0; font-family:'Geist Mono',Consolas,monospace; font-size:13px; line-height:1.4; color:var(--muted2); overflow-wrap:anywhere; word-break:break-word;}
+    .buttons{flex:0 0 auto; display:flex; gap:6px; margin:0;}
+    .btn{padding:3px 8px; font-size:11px; border:1px solid var(--line); background:var(--panel2); color:var(--muted2); border-radius:8px; cursor:pointer;}
+    .btn:hover{border-color:var(--green); color:var(--green);}
+    .muted{color:#6a6a6a;}
 
     /* ===== Documents: two-level tree ===== */
-    .doc-layout { display:grid; grid-template-columns: 320px 1fr; gap:12px; }
-    .doc-files { background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.08); }
-    .doc-files { padding:0; border:1px solid var(--border); overflow:auto; }
-    .doc-files.hidden { display:none; }
+    .doc-layout{display:grid; grid-template-columns:320px 1fr; gap:14px;}
+    .doc-files{background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 8px rgba(0,0,0,.35); padding:0; overflow:auto;}
+    .doc-files.hidden{display:none;}
+    .files-head{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line);}
+    .files-title{font-size:13px; font-weight:700; color:var(--green); font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:.05em;}
+    .crumbs{font-size:12px; color:var(--muted);}
+    .file-table{width:100%; border-collapse:collapse;}
+    .file-table th,.file-table td{padding:11px 14px; border-bottom:1px solid var(--line);}
+    .file-table th{font-size:11px; color:var(--muted); text-align:left;}
+    .file-table td.num{text-align:right; white-space:nowrap;}
+    .file-actions{display:flex; gap:10px; justify-content:flex-end;}
+    .link{color:var(--green); text-decoration:none; border-bottom:1px solid rgba(69,254,140,.45); cursor:pointer; font-size:12px;}
+    .link:hover{color:#fff; border-color:#fff;}
 
-    .files-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eef2fb; }
-    .files-title { font-size:14px; font-weight:700; color:#2a4b8d; }
-    .crumbs { font-size:12px; color:#666; }
-    .file-table { width:100%; border-collapse:collapse; }
-    .file-table th, .file-table td { padding:10px 12px; border-bottom:1px solid #f1f4fb; }
-    .file-table th { font-size:12px; color:#666; text-align:left; }
-    .file-table td.num { text-align:right; white-space:nowrap; }
-    .file-actions { display:flex; gap:8px; justify-content:flex-end; }
-    .link { color:#2a4b8d; text-decoration:underline; cursor:pointer; font-size:12px; }
+    @media (max-width:1100px){
+      .doc-layout{grid-template-columns:1fr;}
+      .doc-files:not(.hidden){margin-top:0;}
+    }
+    @media (max-width:920px){
+      .app{grid-template-columns:1fr;}
+      .sidebar{position:relative; height:auto; border-right:none; border-bottom:1px solid var(--line);}
+      .grid{grid-template-columns:1fr;}
+      .bank-grid{grid-template-columns:1fr;}
+      .imp-panel{width:calc(100vw - 32px); right:0;}
+    }
+    tr.final-total td{font-weight:800 !important; color:#fff; border-top:3px solid var(--green);}
 
-    @media (max-width: 1100px){
-      .doc-layout { grid-template-columns: 1fr; }
-      .doc-files:not(.hidden) { margin-top: 0; }
-    }
-
-    /* Responsive */
-    @media (max-width: 920px){
-      .app { grid-template-columns: 1fr; }
-      .sidebar { position:relative; height:auto; border-right:none; border-bottom:1px solid var(--border); }
-      .grid { grid-template-columns: 1fr; }
-      .bank-grid { grid-template-columns: 1fr; }
-      .imp-panel { width:calc(100vw - 32px); right:0; }
-    }
-    tr.final-total td {
-      font-weight: 800 !important;
-      border-top: 4px solid #000;
-    }
     /* Folder pane matches sidebar look */
-    #folder-pane .nav-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 0;
-      padding: 0;
-    }
-        
-    /* Make folder rows match the left nav look */
-    #folder-pane .nav-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      text-decoration: none;
-      padding: 10px 12px;
-      border-radius: 10px;
-      color: #2a4b8d;
-      font-weight: 500;
-    }
-    
-    #folder-pane .nav-item .label {
-      font-size: 1.1rem;
-    }
-    
-    #folder-pane .nav-item:hover { background: #f6f9ff; }
-    #folder-pane .nav-item.active { background: #eef3ff; }
-    
-    /* badge count pill */
-    #folder-pane .nav-item .badge {
-      font-size: 14px;
-      line-height: 1;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--muted);
-      color: var(--ink);
-      opacity: .85;
-    }
-    
-    #folder-pane .nav-item.active .badge {
-      background: rgba(255,255,255,.2);
-      color: #fff;
-      opacity: 1;
-    }
-    .card-header {
-      font-weight: 700;
-      font-size: 14px;
-      color: #2a4b8d;
-      padding: 10px 12px;
-      border-bottom: 1px solid #eef2fb;
-    }
+    #folder-pane{padding:0;}
+    #folder-pane .nav-list{display:flex; flex-direction:column; gap:6px; margin:0; padding:8px;}
+    #folder-pane .nav-item{display:flex; align-items:center; justify-content:space-between; text-decoration:none; padding:10px 12px; border-radius:10px; color:var(--muted); font-weight:500;}
+    #folder-pane .nav-item .label{font-size:1.05rem;}
+    #folder-pane .nav-item:hover{background:rgba(255,255,255,.04);}
+    #folder-pane .nav-item.active{background:rgba(69,254,140,.10); color:var(--green);}
+    #folder-pane .nav-item .badge{font-size:13px; line-height:1; padding:3px 8px; border-radius:999px; background:var(--panel2); color:var(--muted2); opacity:.9;}
+    #folder-pane .nav-item.active .badge{background:rgba(69,254,140,.2); color:var(--green); opacity:1;}
+    .card-header{font-family:'Geist Mono',monospace; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--green); padding:12px 14px; border-bottom:1px solid var(--line);}
 
-    /* === Folder tree (Type → Years) === */
-    #folder-pane .group {
-      margin: 4px 0;
-    }
-    
-    #folder-pane .group-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border-radius: 10px;
-      text-decoration: none;
-      color: #2a4b8d;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    
-    #folder-pane .group-toggle:hover { background:#f6f9ff; }
-    #folder-pane .group.open .group-toggle { background:#eef3ff; }
-    
-    #folder-pane .group .years {
-      display: none;
-      margin: 4px 0 0 0;
-      padding: 0 0 0 8px;
-    }
-    
-    #folder-pane .group.open .years {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    
-    #folder-pane .year-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 8px;
-      color: #2a4b8d;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    
-    #folder-pane .year-item:hover { background:#f6f9ff; }
-    #folder-pane .year-item.active { background:#eef3ff; }
-    
-    #folder-pane .badge {
-      font-size: 12px;
-      line-height: 1;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--muted);
-      color: var(--ink);
-      opacity: .85;
-    }
-    
+    /* === Folder tree (Type -> Years) === */
+    #folder-pane .group{margin:4px 8px;}
+    #folder-pane .group-toggle{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; text-decoration:none; color:var(--muted2); font-weight:600; cursor:pointer;}
+    #folder-pane .group-toggle:hover{background:rgba(255,255,255,.04);}
+    #folder-pane .group.open .group-toggle{background:rgba(69,254,140,.08); color:var(--green);}
+    #folder-pane .group .years{display:none; margin:4px 0 0 0; padding:0 0 0 8px;}
+    #folder-pane .group.open .years{display:flex; flex-direction:column; gap:6px;}
+    #folder-pane .year-item{display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:8px; color:var(--muted); text-decoration:none; font-weight:500;}
+    #folder-pane .year-item:hover{background:rgba(255,255,255,.04);}
+    #folder-pane .year-item.active{background:rgba(69,254,140,.10); color:var(--green);}
+    #folder-pane .badge{font-size:12px; line-height:1; padding:3px 8px; border-radius:999px; background:var(--panel2); color:var(--muted2); opacity:.85;}
     #folder-pane .year-item.active .badge,
-    #folder-pane .group.open .group-toggle .badge {
-      opacity: 1;
-    }
-    
-    #folder-pane .caret {
-      margin-right: 8px;
-      transition: transform .15s ease;
-    }
-    #folder-pane .group.open .caret { transform: rotate(90deg); }
+    #folder-pane .group.open .group-toggle .badge{opacity:1;}
+    #folder-pane .caret{margin-right:8px; transition:transform .15s ease; color:var(--green);}
+    #folder-pane .group.open .caret{transform:rotate(90deg);}
+    #folder-pane .group-toggle .label{font-size:1.12rem;}
+    #folder-pane .year-item .label{font-size:1.02rem;}
 
-    /* bump the font size of the Type (caret) row label */
-    #folder-pane .group-toggle .label {
-      font-size: 1.15rem;
-    }
-    
-    /* bump the font size of each Year row label */
-    #folder-pane .year-item .label {
-      font-size: 1.05rem;
-    }
+    /* Collapsible transactions (Year > Month > Txn) */
+    .tw-toggle{cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:6px;}
+    .tw-toggle .caret{color:var(--green); font-size:11px;}
+    .tw-toggle:hover{color:var(--green);}
+    tr.lvl-year td{font-family:'Geist Mono',Consolas,monospace; font-weight:600; color:#fff; background:rgba(255,255,255,.025);}
+    tr.lvl-year td.num{color:#fff;}
+    tr.lvl-month td{color:var(--muted2);}
+    tr.lvl-txn td{font-size:13px; color:var(--muted2);}
+
+    /* Brand footer */
+    .brand-footer{font-family:'Geist Mono',Consolas,monospace; font-size:10px; letter-spacing:.14em; color:#666666; text-transform:uppercase; text-align:center; padding:20px 16px 28px; border-top:1px solid var(--line); background:var(--bg);}
   </style>
+
 </head>
 <body>
   <div class="app">
     <!-- ===== Left Sidebar ===== -->
     <aside class="sidebar">
       <div class="brand-block">
-        <div class="brand-row"><img src="/assets/allegis-logo.svg" alt="Allegis Capital"></div>
+        <div class="brand-row">
+          <div class="wordmark">ALLEGIS&nbsp;CAPITAL<small>GP MEMBER PORTAL</small></div>
+        </div>
       </div>
 
       <nav class="nav">
         <a href="#/interests"     id="linkInterests">GP Interests</a>
         <a href="#/transactions"  id="linkTx" class="active">Member Outstanding Balance</a>
-        <a href="#/dec-2025"      id="linkDec2025">2025 Earnings for Tax Estimates</a>
         <a href="#/documents"     id="linkDocs">Documents</a>
         <a href="#/wire"          id="linkWire">Wire Instructions</a>
       </nav>
@@ -395,27 +314,6 @@
           </div>
         </div>
 
-        <!-- 2025 Earnings for Tax Estimates (route/id remains dec-2025) -->
-        <div id="card-dec2025" class="card hidden" style="margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:16px;">2025 Earnings for Tax Estimates</h3>
-            <div id="dec2025-updated" class="sub"></div>
-          </div>
-          <div style="overflow:auto; margin-top:6px;">
-            <table id="dec2025-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Description</th>
-                  <th class="num" style="width:140px;">Amount</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-              <tfoot></tfoot>
-            </table>
-          </div>
-        </div>
-
         <!-- Wire Instructions -->
         <div id="card-wire" class="card hidden" style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -431,6 +329,8 @@
       </div>
     </main>
   </div>
+
+  <footer class="brand-footer">ALLEGIS CAPITAL &#9670; 200 PAGE MILL ROAD, SUITE 100 &#9670; PALO ALTO, CA 94306 &#9670; WWW.ALLEGISCAPITAL.COM</footer>
 
   <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -594,11 +494,14 @@ function renderTransactions(data){
   // Keep current balance consistent with your existing definition
   window.__currentBalance = includedTotal;
 
-  // --- Table rendering (unchanged) ---
+  // --- Table rendering: collapsible Entity > Year > Month > Transactions ---
   const tb = document.querySelector('#tx tbody');
   const tf = document.querySelector('#tx tfoot');
   tb.innerHTML = '';
   tf.innerHTML = '';
+
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const _now = new Date(); const curY = _now.getFullYear(); const curMo = _now.getMonth();
 
   const groups = new Map();
   for (const it of rows) {
@@ -607,19 +510,67 @@ function renderTransactions(data){
   }
   const entityNames = Array.from(groups.keys()).sort((a,b)=> a.localeCompare(b));
 
+  let ei = 0;
   for (const name of entityNames) {
     const list = groups.get(name).sort((a,b)=> a.date - b.date);
+    const ekey = 'e' + ei;
+
     const eh = document.createElement('tr');
     eh.className = 'entity-hdr';
     eh.innerHTML = `<td colspan="4">${safe(name)}</td>`;
     tb.appendChild(eh);
 
+    // Bucket by Year > Month while carrying the cumulative running balance
+    const years = new Map();
     let running = 0;
     for (const r of list) {
       running += r.net;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${safe(r.dateText)}</td><td>${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(running)}</td>`;
-      tb.appendChild(tr);
+      const d = r.date;
+      const valid = d && !isNaN(d);
+      const yr = valid ? String(d.getFullYear()) : 'Unknown';
+      const mo = valid ? d.getMonth() : -1;
+      if (!years.has(yr)) years.set(yr, { net:0, running:0, months:new Map() });
+      const Y = years.get(yr);
+      Y.net += r.net; Y.running = running;
+      if (!Y.months.has(mo)) Y.months.set(mo, { net:0, running:0, items:[] });
+      const M = Y.months.get(mo);
+      M.net += r.net; M.running = running;
+      M.items.push({ ...r, run: running });
+    }
+
+    const yearKeys = Array.from(years.keys()).sort((a,b)=> (Number(b)||0) - (Number(a)||0));
+    for (const yr of yearKeys) {
+      const Y = years.get(yr);
+      const ykey = ekey + '-y' + yr;
+      const yrIsCurrent = (yr === String(curY));
+      const yrTr = document.createElement('tr');
+      yrTr.className = 'lvl-year' + (yrIsCurrent ? ' open' : '');
+      yrTr.setAttribute('data-key', ykey);
+      yrTr.innerHTML = `<td></td><td><span class="tw-toggle"><span class="caret">${yrIsCurrent ? '▼' : '▶'}</span> ${safe(yr)}</span></td><td class="num">${money(Y.net)}</td><td class="num">${money(Y.running)}</td>`;
+      tb.appendChild(yrTr);
+
+      const monthKeys = Array.from(Y.months.keys()).sort((a,b)=> b - a);
+      for (const mo of monthKeys) {
+        const M = Y.months.get(mo);
+        const mkey = ykey + '-m' + (mo < 0 ? 'x' : mo);
+        const label = mo < 0 ? '—' : `${MONTHS[mo]} ${yr}`;
+        const moIsCurrent = (yrIsCurrent && mo === curMo);
+        const moTr = document.createElement('tr');
+        moTr.className = 'lvl-month' + (yrIsCurrent ? '' : ' hidden') + (moIsCurrent ? ' open' : '');
+        moTr.setAttribute('data-parent', ykey);
+        moTr.setAttribute('data-key', mkey);
+        moTr.innerHTML = `<td></td><td><span class="tw-toggle" style="padding-left:22px;"><span class="caret">${moIsCurrent ? '▼' : '▶'}</span> ${safe(label)}</span></td><td class="num">${money(M.net)}</td><td class="num">${money(M.running)}</td>`;
+        tb.appendChild(moTr);
+
+        const items = M.items.slice().reverse();
+        for (const r of items) {
+          const txTr = document.createElement('tr');
+          txTr.className = 'lvl-txn' + (moIsCurrent ? '' : ' hidden');
+          txTr.setAttribute('data-parent', mkey);
+          txTr.innerHTML = `<td>${safe(r.dateText)}</td><td style="padding-left:44px;">${safe(r.desc)}</td><td class="num">${money(r.net)}</td><td class="num">${money(r.run)}</td>`;
+          tb.appendChild(txTr);
+        }
+      }
     }
 
     const sub = list.reduce((a, x) => a + x.net, 0);
@@ -627,6 +578,7 @@ function renderTransactions(data){
     st.className = 'subtotal';
     st.innerHTML = `<td></td><td><strong>Subtotal – ${safe(name)}</strong></td><td class="num"><strong>${money(sub)}</strong></td><td class="num"><strong>${money(running)}</strong></td>`;
     tb.appendChild(st);
+    ei++;
   }
 
   // Footer grand total (use includedTotal same as KPI)
@@ -635,6 +587,45 @@ function renderTransactions(data){
   gt.innerHTML = `<td></td><td><strong>Grand Total</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td><td class="num"><strong>${money(includedTotal)}</strong></td>`;
   tf.appendChild(gt);
 
+  // Wire up collapse/expand once (event delegation survives tbody re-renders)
+  if (!tb.__twBound) {
+    tb.__twBound = true;
+    tb.addEventListener('click', (ev) => {
+      const toggle = ev.target.closest('.tw-toggle');
+      if (!toggle) return;
+      const row = toggle.closest('tr');
+      if (!row) return;
+      const caret = toggle.querySelector('.caret');
+      const body = row.parentElement;
+      const key = row.getAttribute('data-key');
+      const open = row.classList.contains('open');
+      if (row.classList.contains('lvl-year')) {
+        const months = body.querySelectorAll('.lvl-month[data-parent="' + key + '"]');
+        if (open) {
+          months.forEach(m => {
+            m.classList.add('hidden'); m.classList.remove('open');
+            const mc = m.querySelector('.caret'); if (mc) mc.textContent = '▶';
+            const mk = m.getAttribute('data-key');
+            body.querySelectorAll('.lvl-txn[data-parent="' + mk + '"]').forEach(t => t.classList.add('hidden'));
+          });
+          row.classList.remove('open'); if (caret) caret.textContent = '▶';
+        } else {
+          months.forEach(m => m.classList.remove('hidden'));
+          row.classList.add('open'); if (caret) caret.textContent = '▼';
+        }
+      } else {
+        const txns = body.querySelectorAll('.lvl-txn[data-parent="' + key + '"]');
+        if (open) {
+          txns.forEach(t => t.classList.add('hidden'));
+          row.classList.remove('open'); if (caret) caret.textContent = '▶';
+        } else {
+          txns.forEach(t => t.classList.remove('hidden'));
+          row.classList.add('open'); if (caret) caret.textContent = '▼';
+        }
+      }
+    });
+  }
+
   // Signed-as label
   const signedAs = document.getElementById('signedAs');
   if (signedAs) {
@@ -642,89 +633,6 @@ function renderTransactions(data){
       ? `Acting as ${data.actingAs} (admin: ${data.email})`
       : `Signed in as ${data.email}`;
   }
-}
-// ===== render: Dec-2025 Balances =====
-function renderDec2025Balances(data){
-  const items = Array.isArray(data.items) ? data.items : [];
-
-  // Try to pick a name from the first row's Raw, otherwise just use the email
-  let memberName = '';
-  if (items.length && items[0].Raw && items[0].Raw.Member_Name) {
-    memberName = String(items[0].Raw.Member_Name || '').trim();
-  }
-
-  const email = data.actingAs || data.email || '—';
-
-  // KPI header (left)
-  document.getElementById('kpi-name').textContent  = memberName || email || '—';
-  document.getElementById('kpi-email').textContent = email;
-
-  // KPI title (right)
-  document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
-
-  // ---- NEW: compute two sums based on Item text (case-insensitive) ----
-  const includesCI = (text, needle) =>
-    String(text || '').toLowerCase().includes(String(needle || '').toLowerCase());
-
-  const earningsTotal = items.reduce((sum, r) => {
-    return includesCI(r.Item, 'earnings') ? (sum + Number(r.Amount || 0)) : sum;
-  }, 0);
-
-  const pteTotal = items.reduce((sum, r) => {
-    return includesCI(r.Item, 'pte') ? (sum + Number(r.Amount || 0)) : sum;
-  }, 0);
-
-  // Optional: full total for the table footer
-  const totalAll = items.reduce((sum, r) => sum + Number(r.Amount || 0), 0);
-
-  // KPI right: show two-line breakdown
-  document.getElementById('kpi-right-value').textContent = '';
-  document.getElementById('kpi-right-sub').innerHTML = `
-    <div class="kpi-rows">
-      <div><strong>2025 Earnings</strong> — $${money(earningsTotal)}</div>
-      <div><strong>2025 PTE Payments</strong> — $${money(pteTotal)}</div>
-    </div>
-  `;
-
-  // ----- Table rendering -----
-  const tbody = document.querySelector('#dec2025-table tbody');
-  const tfoot = document.querySelector('#dec2025-table tfoot');
-  tbody.innerHTML = '';
-  tfoot.innerHTML = '';
-
-  if (!items.length){
-    tbody.innerHTML = `<tr><td class="sub" colspan="3">No rows for your account.</td></tr>`;
-  } else {
-    for (const r of items){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${safe(r.Item || '')}</td>
-        <td>${safe(r.Description || '')}</td>
-        <td class="num">${money(Number(r.Amount || 0))}</td>
-      `;
-      tbody.appendChild(tr);
-    }
-
-    const totRow = document.createElement('tr');
-    totRow.className = 'grand';
-    totRow.innerHTML = `
-      <td></td>
-      <td><strong>Total</strong></td>
-      <td class="num"><strong>${money(totalAll)}</strong></td>
-    `;
-    tfoot.appendChild(totRow);
-  }
-
-  if (data.updated){
-    document.getElementById('dec2025-updated').textContent =
-      'Updated ' + new Date(data.updated).toLocaleString();
-  }
-}
-
-// IMPORTANT: this loader MUST exist because setRoute() calls it
-async function loadDec2025Balances(){
-  const data = await apiPost('/api/list-dec-2025-balances', { ...adminBody() }, adminHeaders());
-  renderDec2025Balances(data);
 }
 
     // Build a two-level tree: Type → Years
@@ -856,7 +764,7 @@ async function loadDec2025Balances(){
           <td class="num">${r.SizeBytes ? Number(r.SizeBytes).toLocaleString() : ''}</td>
           <td>
             <div class="file-actions">
-              ${r.GoogleFileID ? `<a class="link view" data-fid="${safe(r.GoogleFileID)}">View</a>` : ''}
+              ${r.ViewURL ? `<a class="link" href="${safe(r.ViewURL)}" target="_blank" rel="noopener">View</a>` : ''}
               ${r.GoogleFileID ? `<a class="link dl" data-fid="${safe(r.GoogleFileID)}">Download</a>` : ''}
             </div>
           </td>
@@ -1132,28 +1040,11 @@ async function loadDec2025Balances(){
         if (el) { el.classList.remove('disabled'); el.textContent = 'Download'; }
       }
     }
-    async function viewDoc(fileId, el){
-      try{
-        if (el) { el.classList.add('disabled'); el.textContent = 'Opening…'; }
-        const { token } = await apiPost('/api/mint-doc', { fileId, ...adminBody() }, adminHeaders());
-        const url = `https://get-portal-data-468716163323.us-west3.run.app/api/dl?token=${encodeURIComponent(token)}&disp=inline`;
-        window.open(url, '_blank', 'noopener');
-      }catch(e){ console.error(e); alert('Unable to open this file.'); }
-      finally{
-        if (el) { el.classList.remove('disabled'); el.textContent = 'View'; }
-      }
-    }
     document.addEventListener('click', (e)=>{
       const dl = e.target.closest('.dl');
       if (dl && dl.hasAttribute('data-fid')){
         e.preventDefault();
         downloadDoc(dl.getAttribute('data-fid'), dl);
-        return;
-      }
-      const vw = e.target.closest('.view');
-      if (vw && vw.hasAttribute('data-fid')){
-        e.preventDefault();
-        viewDoc(vw.getAttribute('data-fid'), vw);
       }
     });
 
@@ -1162,19 +1053,16 @@ async function loadDec2025Balances(){
       const isDocs      = (hash === '#/documents');
       const isInterests = (hash === '#/interests');
       const isWire      = (hash === '#/wire');
-      const isDec2025   = (hash === '#/dec-2025');
-      const isTx        = !(isDocs || isInterests || isWire || isDec2025);
+      const isTx        = !(isDocs || isInterests || isWire);
 
       document.getElementById('card-tx').classList.toggle('hidden', !isTx);
       document.getElementById('card-docs').classList.toggle('hidden', !isDocs);
       document.getElementById('card-interests').classList.toggle('hidden', !isInterests);
-      document.getElementById('card-dec2025').classList.toggle('hidden', !isDec2025);
       document.getElementById('card-wire').classList.toggle('hidden', !isWire);
 
       document.getElementById('linkTx').classList.toggle('active', isTx);
       document.getElementById('linkDocs').classList.toggle('active', isDocs);
       document.getElementById('linkInterests').classList.toggle('active', isInterests);
-      document.getElementById('linkDec2025').classList.toggle('active', isDec2025);
       document.getElementById('linkWire').classList.toggle('active', isWire);
 
       const kVal = document.getElementById('kpi-right-value');
@@ -1191,9 +1079,6 @@ async function loadDec2025Balances(){
       } else if (isWire) {
         document.getElementById('kpi-right-title').textContent = 'Wire Scope';
         loadWire();
-      } else if (isDec2025) {
-        document.getElementById('kpi-right-title').textContent = '2025 Earnings for Tax Estimates';
-        loadDec2025Balances();
       } else {
         document.getElementById('kpi-right-title').textContent = 'Member Outstanding Balance';
         loadTransactions();
@@ -1206,14 +1091,12 @@ async function loadDec2025Balances(){
       const isDocs      = (location.hash === '#/documents');
       const isInterests = (location.hash === '#/interests');
       const isWire      = (location.hash === '#/wire');
-      const isDec2025   = (location.hash === '#/dec-2025');
       const impState = document.getElementById('imp-state');
 
       try{
         if (isDocs)           await loadDocuments();
         else if (isInterests) await loadInterests();
         else if (isWire)      await loadWire();
-        else if (isDec2025)   await loadDec2025Balances();
         else                  await loadTransactions();
 
         setStatus('');
@@ -1221,14 +1104,13 @@ async function loadDec2025Balances(){
       }catch(e){
         console.error(e);
         const msg = (e && e.message) ? e.message : 'Unknown error';
-        const what = isDocs ? 'documents' : isInterests ? 'interests' : isWire ? 'wire instructions' : isDec2025 ? 'Dec-2025 balances' : 'transactions';
+        const what = isDocs ? 'documents' : isInterests ? 'interests' : isWire ? 'wire instructions' : 'transactions';
         setStatus(`Error loading ${what}: ${msg}`);
         if (impState) impState.textContent = `Error: ${msg}`;
         await new Promise(r => setTimeout(r, 400));
         if (isDocs)           await loadDocuments();
         else if (isInterests) await loadInterests();
         else if (isWire)      await loadWire();
-        else if (isDec2025)   await loadDec2025Balances();
         else                  await loadTransactions();
       }
     }
@@ -1353,7 +1235,6 @@ async function loadDec2025Balances(){
     document.getElementById('linkTx')       ?.addEventListener('click', () => location.hash = '#/transactions');
     document.getElementById('linkDocs')     ?.addEventListener('click', () => location.hash = '#/documents');
     document.getElementById('linkInterests')?.addEventListener('click', () => location.hash = '#/interests');
-    document.getElementById('linkDec2025')  ?.addEventListener('click', () => location.hash = '#/dec-2025');
     document.getElementById('linkWire')     ?.addEventListener('click', () => location.hash = '#/wire');
 
     // ===== boot =====
@@ -1370,3 +1251,4 @@ async function loadDec2025Balances(){
   </script>
 </body>
 </html>
+
